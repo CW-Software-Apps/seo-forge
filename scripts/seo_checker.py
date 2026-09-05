@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
 SEO-FORGE: 360° SEO, Crawlability & GEO Diagnostic Engine
-Audits web applications (Blazor, HTML, Next.js) and generates detailed diagnostic
-reports with prioritized AI Action Plans for coding agents (OpenCode, Claude, Antigravity, Cursor).
+Version: 1.2.0
+Audits web applications (Blazor, Razor Pages, ASP.NET Core, HTML, Next.js, React)
+and generates detailed diagnostic reports with prioritized AI Action Plans for
+coding agents (OpenCode, Claude, Antigravity, Cursor).
 
 Usage:
     python scripts/seo_checker.py [project_path]
     python scripts/seo_checker.py [project_path] --report [report_path.md]
+    python scripts/seo_checker.py --update
 """
 
 import sys
@@ -17,6 +20,9 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
+VERSION = "1.2.0"
+REPO_RAW_BASE = "https://raw.githubusercontent.com/CW-Software-Apps/seo-forge/main"
+
 # Fix Windows console encoding
 try:
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -26,13 +32,14 @@ except Exception:
 SKIP_DIRS = {
     'node_modules', '.next', 'dist', 'build', '.git', '.github',
     '__pycache__', '.vscode', '.idea', 'coverage', 'test', 'tests',
-    '__tests__', 'spec', 'docs', 'documentation', 'examples', 'bin', 'obj', 'data'
+    '__tests__', 'spec', 'docs', 'documentation', 'examples', 'bin', 'obj', 'data',
+    'emailtemplates', 'templates', 'emails', 'mail'
 }
 
 SKIP_PATTERNS = [
     'config', 'setup', 'util', 'helper', 'hook', 'context', 'store',
     'service', 'api', 'lib', 'constant', 'type', 'interface', 'mock',
-    '.test.', '.spec.', '_test.', '_spec.'
+    '.test.', '.spec.', '_test.', '_spec.', 'template', 'partial'
 ]
 
 
@@ -44,6 +51,63 @@ def humanize_name(stem: str) -> str:
     return " ".join(words) if words else stem
 
 
+def update_seo_forge(project_path: Path):
+    """Auto-update SEO-FORGE to the latest version from GitHub."""
+    import urllib.request
+    
+    print("\n" + "=" * 70)
+    print("  🔄 SEO-FORGE - Auto-Update Engine")
+    print(f"  Versão Atual: v{VERSION} | CW Software (https://cwsoftware.com.br)")
+    print("=" * 70)
+    
+    # 1. Update Global Skills
+    gemini_skills = Path.home() / ".gemini" / "config" / "skills"
+    skills = ["technical-seo", "schema-markup", "open-graph-social", "content-seo", "geo-search-optimization"]
+    print("\n[*] Atualizando skills globais...")
+    for s in skills:
+        s_dir = gemini_skills / s
+        s_dir.mkdir(parents=True, exist_ok=True)
+        target_f = s_dir / "SKILL.md"
+        url = f"{REPO_RAW_BASE}/skills/{s}/SKILL.md"
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                content = resp.read().decode('utf-8')
+                target_f.write_text(content, encoding='utf-8')
+            print(f"  -> Atualizado: skill {s}")
+        except Exception as e:
+            print(f"  [!] Aviso: Não foi possível atualizar skill {s}: {e}")
+            
+    # 2. Update Local Project Files
+    print(f"\n[*] Atualizando arquivos do projeto em: {project_path}")
+    update_files = [
+        ("scripts/seo_checker.py", "scripts/seo_checker.py"),
+        (".agent/skills/seo-fundamentals/scripts/seo_checker.py", "scripts/seo_checker.py"),
+        ("AGENTS.md", "AGENTS.md"),
+        ("CLAUDE.md", "CLAUDE.md"),
+        (".cursor/rules/seo.mdc", ".cursor/rules/seo.mdc"),
+        (".claude/commands/seo-fix.md", ".claude/commands/seo-fix.md"),
+        (".agent/agents/seo-specialist.md", "agents/seo-specialist.md")
+    ]
+    
+    for local_rel, remote_rel in update_files:
+        local_path = project_path / local_rel
+        if local_path.parent.exists():
+            url = f"{REPO_RAW_BASE}/{remote_rel}"
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    content = resp.read().decode('utf-8')
+                    local_path.write_text(content, encoding='utf-8')
+                print(f"  -> Atualizado: {local_rel}")
+            except Exception as e:
+                print(f"  [!] Aviso: Não foi possível atualizar {local_rel}: {e}")
+
+    print("\n[OK] SEO-FORGE atualizado com sucesso para a versão mais recente!")
+    print("=" * 70 + "\n")
+    sys.exit(0)
+
+
 def check_technical_infrastructure(project_path: Path) -> dict:
     """Audit Technical SEO: robots.txt, sitemap.xml, IndexNow, DI and Blazor SSR."""
     results = {
@@ -51,14 +115,20 @@ def check_technical_infrastructure(project_path: Path) -> dict:
         "sitemap_xml": {"status": False, "detail": "Ausente: sitemap.xml não encontrado", "action": "Criar rota dinâmica /sitemap.xml ou arquivo estático"},
         "indexnow_config": {"status": False, "key": None, "host": None, "detail": "IndexNow não configurado no appsettings.json", "action": "Adicionar seção IndexNow com Host e Key no appsettings.json"},
         "indexnow_endpoint": {"status": False, "detail": "Endpoint de validação /{key}.txt não mapeado", "action": "Mapear endpoint GET /{key}.txt retornando a chave em texto puro"},
-        "indexnow_di": {"status": False, "detail": "IIndexNowService não registrado na injeção de dependência", "action": "Registrar builder.Services.AddHttpClient<IIndexNowService, IndexNowService>() no Program.cs"},
-        "blazor_headoutlet": {"status": False, "detail": "App.razor não possui <HeadOutlet />", "action": "Adicionar <HeadOutlet /> no <head> do App.razor para suportar SSR de metadados"},
-        "schema_jsonld": {"status": False, "count": 0, "detail": "Nenhum schema JSON-LD encontrado", "action": "Adicionar Schema.org (Organization / SoftwareApplication) com componente <JsonLd>"}
+        "indexnow_di": {"status": False, "detail": "IIndexNowService não registrado na injeção de dependência", "action": "Registrar builder.Services.AddHttpClient<IIndexNowService, IndexNowService>() no Program.cs / Startup.cs"},
+        "blazor_headoutlet": {"status": False, "detail": "Nenhum <HeadOutlet /> encontrado em App.razor ou _Host.cshtml", "action": "Adicionar <HeadOutlet /> ou <component type=\"typeof(HeadOutlet)\" /> para suportar SSR de metadados"},
+        "schema_jsonld": {"status": False, "count": 0, "detail": "Nenhum schema JSON-LD encontrado", "action": "Adicionar Schema.org (Organization / SoftwareApplication) com componente <JsonLd> ou script"}
     }
 
     # Gather key infrastructure files
     key_files = []
-    for pattern in ["**/Program.cs", "**/Endpoints/*.cs", "**/Components/App.razor", "**/*Sitemap*.cs", "**/*Seo*.razor", "**/Components/Layout/*.razor"]:
+    for pattern in [
+        "**/Program.cs", "**/Startup.cs", "**/Endpoints/*.cs",
+        "**/Components/App.razor", "**/Pages/App.razor",
+        "**/Pages/_Host.cshtml", "**/*Host*.cshtml",
+        "**/*Sitemap*.*", "**/*Seo*.razor", "**/Components/Layout/*.razor",
+        "**/Pages/Shared/_Layout.cshtml", "**/Views/Shared/_Layout.cshtml"
+    ]:
         for f in project_path.glob(pattern):
             if not any(skip in f.parts for skip in SKIP_DIRS):
                 key_files.append(f)
@@ -119,14 +189,14 @@ def check_technical_infrastructure(project_path: Path) -> dict:
     elif "IndexNowService" in code_content_all and ("AddHttpClient" in code_content_all or "AddScoped" in code_content_all):
         results["indexnow_di"] = {"status": True, "detail": "Serviço registrado na DI", "action": None}
 
-    # 6. Blazor HeadOutlet
-    app_razor = [f for f in project_path.glob("**/App.razor") if not any(skip in f.parts for skip in SKIP_DIRS)]
-    if app_razor:
-        for ar in app_razor:
+    # 6. Blazor HeadOutlet (App.razor or _Host.cshtml)
+    host_or_app_files = [f for f in (list(project_path.glob("**/App.razor")) + list(project_path.glob("**/*Host*.cshtml"))) if not any(skip in f.parts for skip in SKIP_DIRS)]
+    if host_or_app_files:
+        for f in host_or_app_files:
             try:
-                content = ar.read_text(encoding='utf-8', errors='ignore')
-                if "<HeadOutlet" in content:
-                    results["blazor_headoutlet"] = {"status": True, "detail": "Presente no App.razor para SSR de metadados", "action": None}
+                content = f.read_text(encoding='utf-8', errors='ignore')
+                if "<HeadOutlet" in content or "typeof(HeadOutlet)" in content:
+                    results["blazor_headoutlet"] = {"status": True, "detail": f"Presente em {f.name} para SSR de metadados", "action": None}
                     break
             except Exception:
                 pass
@@ -142,7 +212,7 @@ def check_technical_infrastructure(project_path: Path) -> dict:
 
 
 def is_page_file(file_path: Path) -> bool:
-    """Check if file is a routable page or layout."""
+    """Check if file is a routable public or private page."""
     name = file_path.name.lower()
     stem = file_path.stem.lower()
     suffix = file_path.suffix.lower()
@@ -150,9 +220,19 @@ def is_page_file(file_path: Path) -> bool:
     if any(skip in name for skip in SKIP_PATTERNS):
         return False
     
+    # Ignore partials and layouts starting with underscore
+    if name.startswith('_'):
+        return False
+
+    # Ignore sitemap xml generators
+    if 'sitemap' in stem:
+        return False
+
+    # Ignore emails and email templates
     parts = [p.lower() for p in file_path.parts]
-    page_dirs = ['pages', 'app', 'routes', 'views', 'screens']
-    
+    if any(d in parts for d in ['emailtemplates', 'templates', 'emails', 'mail']):
+        return False
+
     if suffix == '.razor':
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -161,12 +241,25 @@ def is_page_file(file_path: Path) -> bool:
         except Exception:
             return False
 
+    if suffix == '.cshtml':
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                head = "".join([f.readline() for _ in range(25)])
+                # Razor Pages use @page
+                if '@page' in head:
+                    return True
+                # MVC views are located in Views/
+                if any(p in parts for p in ['views']):
+                    return True
+        except Exception:
+            return False
+
+    page_dirs = ['pages', 'app', 'routes', 'views', 'screens']
     if any(d in parts for d in page_dirs):
         return True
     
     page_names = ['page', 'index', 'home', 'about', 'contact', 'blog', 
                   'post', 'article', 'product', 'landing']
-    
     if any(p in stem for p in page_names):
         return True
     
@@ -177,8 +270,8 @@ def is_page_file(file_path: Path) -> bool:
 
 
 def find_pages(project_path: Path) -> list:
-    """Find public pages to analyze."""
-    patterns = ['**/*.html', '**/*.htm', '**/*.jsx', '**/*.tsx', '**/*.razor']
+    """Find routable pages to analyze."""
+    patterns = ['**/*.html', '**/*.htm', '**/*.jsx', '**/*.tsx', '**/*.razor', '**/*.cshtml']
     files = []
     for pattern in patterns:
         for f in project_path.glob(pattern):
@@ -198,15 +291,21 @@ def check_page(file_path: Path) -> dict:
     try:
         content = file_path.read_text(encoding='utf-8', errors='ignore')
     except Exception as e:
-        return {"file": str(file_path.name), "path": file_path, "issues": [f"Erro: {e}"], "suggestions": []}
+        return {"file": str(file_path.name), "path": file_path, "is_admin": False, "issues": [f"Erro: {e}"], "suggestions": []}
     
     is_razor = file_path.suffix.lower() == '.razor'
-    is_layout = 'Head>' in content or '<head' in content.lower() or 'Layout' in file_path.stem or is_razor
+    is_layout = 'Head>' in content or '<head' in content.lower() or 'Layout' in file_path.stem or is_razor or file_path.suffix.lower() == '.cshtml'
     
-    # 1. Title tag
+    # Detect internal admin / private pages
+    posix_path = file_path.as_posix().lower()
+    is_admin_or_private = any(adm in posix_path for adm in ['/admin/', '/manage/', '/private/', '/internal/', '/dashboard/', '/areas/identity/'])
+
+    # 1. Title tag (Crucial for all pages, including admin tabs)
     has_title = (
         '<title' in content.lower() or 
         'title=' in content.lower() or 
+        'ViewData["Title"]' in content or
+        'ViewBag.Title' in content or
         'Head>' in content or 
         '<PageTitle>' in content or 
         '<pagetitle' in content.lower() or
@@ -214,29 +313,36 @@ def check_page(file_path: Path) -> dict:
     )
     if not has_title and is_layout:
         issues.append("Falta tag <title> ou <PageTitle>")
-        ai_suggestions.append(f"Adicionar <PageTitle>{human_title} | CW Software</PageTitle> ou usar <SeoHeader Title=\"{human_title}\" />")
+        if is_admin_or_private:
+            ai_suggestions.append(f"Adicionar <PageTitle>{human_title} - Admin</PageTitle> ou ViewData[\"Title\"] = \"{human_title}\"")
+        else:
+            ai_suggestions.append(f"Adicionar <PageTitle>{human_title} | CW Software</PageTitle> ou usar <SeoHeader Title=\"{human_title}\" />")
     
-    # 2. Meta description
-    has_description = (
-        'name="description"' in content.lower() or 
-        'name=\'description\'' in content.lower() or
-        'description=' in content.lower() or
-        '<seoheader' in content.lower()
-    )
-    if not has_description and is_layout:
-        issues.append("Falta meta description")
-        ai_suggestions.append(f"Adicionar meta description de 150-160 caracteres com benefícios e CTA atraente para {human_title}")
+    # 2. Meta description (Public pages only)
+    if not is_admin_or_private:
+        has_description = (
+            'name="description"' in content.lower() or 
+            'name=\'description\'' in content.lower() or
+            'description=' in content.lower() or
+            'ViewData["Description"]' in content or
+            'ViewBag.Description' in content or
+            '<seoheader' in content.lower()
+        )
+        if not has_description and is_layout:
+            issues.append("Falta meta description")
+            ai_suggestions.append(f"Adicionar meta description de 150-160 caracteres com benefícios e CTA atraente para {human_title}")
     
-    # 3. Open Graph tags
-    has_og = (
-        'og:' in content or 
-        'property="og:' in content.lower() or
-        'ogimage=' in content.lower() or
-        '<seoheader' in content.lower()
-    )
-    if not has_og and is_layout:
-        issues.append("Faltam tags de Open Graph (WhatsApp/LinkedIn/Facebook)")
-        ai_suggestions.append("Incluir og:title, og:description, og:image (1200x630px) e twitter:card='summary_large_image'")
+    # 3. Open Graph tags (Public pages only - admin pages should not generate social cards)
+    if not is_admin_or_private:
+        has_og = (
+            'og:' in content or 
+            'property="og:' in content.lower() or
+            'ogimage=' in content.lower() or
+            '<seoheader' in content.lower()
+        )
+        if not has_og and is_layout:
+            issues.append("Faltam tags de Open Graph (WhatsApp/LinkedIn/Facebook)")
+            ai_suggestions.append("Incluir og:title, og:description, og:image (1200x630px) e twitter:card='summary_large_image'")
     
     # 4. Heading hierarchy
     h1_matches = re.findall(r'<h1[^>]*>', content, re.I)
@@ -255,6 +361,7 @@ def check_page(file_path: Path) -> dict:
     return {
         "file": str(file_path.name),
         "path": file_path,
+        "is_admin": is_admin_or_private,
         "issues": issues,
         "suggestions": ai_suggestions
     }
@@ -264,9 +371,12 @@ def generate_markdown_report(report_path: Path, project_path: Path, tech_audit: 
     """Generate a comprehensive Markdown Report with actionable AI prompts."""
     now_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
     
+    public_pages = [p for p in pages if not any(adm in p.as_posix().lower() for adm in ['/admin/', '/manage/', '/private/', '/internal/', '/dashboard/', '/areas/identity/'])]
+    admin_pages = [p for p in pages if p not in public_pages]
+
     md = []
     md.append("# 📊 Relatório Diagnóstico SEO 360° & Plano de Ação para IA")
-    md.append(f"> **Projeto:** `{project_path.name}` | **Data:** {now_str} | **Auditor:** SEO-FORGE Engine")
+    md.append(f"> **Projeto:** `{project_path.name}` | **Data:** {now_str} | **Auditor:** SEO-FORGE Engine v{VERSION}")
     md.append("")
     md.append(f"## 🏆 Score Geral de Saúde SEO: **{score}/100** ({grade})")
     md.append("")
@@ -283,7 +393,7 @@ def generate_markdown_report(report_path: Path, project_path: Path, tech_audit: 
         ("indexnow_config", "Configuração IndexNow (appsettings.json)"),
         ("indexnow_endpoint", "Endpoint de Verificação (/{key}.txt)"),
         ("indexnow_di", "Serviço IndexNow em Injeção de Dependência"),
-        ("blazor_headoutlet", "Blazor SSR (<HeadOutlet /> no App.razor)"),
+        ("blazor_headoutlet", "Blazor SSR (<HeadOutlet /> no App.razor / _Host.cshtml)"),
         ("schema_jsonld", "Dados Estruturados Schema.org (JSON-LD)")
     ]:
         info = tech_audit[item_key]
@@ -295,17 +405,18 @@ def generate_markdown_report(report_path: Path, project_path: Path, tech_audit: 
     md.append("---")
     md.append("")
     md.append("## 2. 📄 Diagnóstico On-Page & Metadados por Página")
-    md.append(f"- **Páginas Analisadas:** `{len(pages)}`")
+    md.append(f"- **Total de Páginas Analisadas:** `{len(pages)}` (`{len(public_pages)}` públicas, `{len(admin_pages)}` administrativas/internas)")
     md.append(f"- **Páginas com Pendências:** `{len(page_issues)}`")
     md.append("")
 
     if page_issues:
-        md.append("| Arquivo | Problemas Detectados | Instrução de Otimização para a IA |")
-        md.append("|---|---|---|")
+        md.append("| Arquivo | Tipo | Problemas Detectados | Instrução de Otimização para a IA |")
+        md.append("|---|---|---|---|")
         for item in page_issues:
+            tipo = "🔒 Admin" if item.get("is_admin") else "🌐 Pública"
             issues_str = "<br>".join([f"• {iss}" for iss in item["issues"]])
             sugg_str = "<br>".join([f"→ {sug}" for sug in item["suggestions"]])
-            md.append(f"| `{item['file']}` | {issues_str} | {sugg_str} |")
+            md.append(f"| `{item['file']}` | {tipo} | {issues_str} | {sugg_str} |")
     else:
         md.append("> ✅ **Excelente! Todas as páginas analisadas possuem títulos, meta descriptions, Open Graph e hierarquia de cabeçalhos válidos.**")
 
@@ -319,13 +430,13 @@ def generate_markdown_report(report_path: Path, project_path: Path, tech_audit: 
     md.append("```text")
     md.append("Olá! Atue como especialista em SEO/GEO e utilize as informações do arquivo seo_report.md para resolver todas as pendências identificadas no projeto:")
     md.append("1. Infraestrutura: Revise a tabela de Infraestrutura Técnica e configure quaisquer itens pendentes (IndexNow, robots.txt, sitemap, DI).")
-    md.append("2. On-Page: Edite as páginas listadas com pendências inserindo o componente <SeoHeader> com títulos envolventes (50-60 caracteres) e descrições ricas em benefícios (150-160 caracteres com CTA).")
+    md.append("2. On-Page: Edite as páginas públicas listadas com pendências inserindo metadados ricos (SeoHeader, PageTitle, meta description de 150-160 caracteres e Open Graph).")
     md.append("3. Semântica: Garanta apenas um <h1> por página e adicione textos alternativos descritivos aos elementos <img>.")
     md.append("4. Ao concluir, execute 'python scripts/seo_checker.py .' no terminal para validar que o score atingiu 100/100.")
     md.append("```")
     md.append("")
     md.append("---")
-    md.append("<div align=\"center\"><sub>Gerado pelo <b>SEO-FORGE</b> (CW Software) • <a href=\"https://github.com/CW-Software-Apps/seo-forge\">github.com/CW-Software-Apps/seo-forge</a></sub></div>")
+    md.append(f"<div align=\"center\"><sub>Gerado pelo <b>SEO-FORGE v{VERSION}</b> (CW Software) • <a href=\"https://github.com/CW-Software-Apps/seo-forge\">github.com/CW-Software-Apps/seo-forge</a></sub></div>")
 
     report_path.write_text("\n".join(md), encoding='utf-8')
 
@@ -334,12 +445,18 @@ def main():
     parser = argparse.ArgumentParser(description="SEO-FORGE 360° Diagnostic Engine & AI Task Generator")
     parser.add_argument("project_path", nargs="?", default=".", help="Target project root directory")
     parser.add_argument("--report", nargs="?", const="seo_report.md", default="seo_report.md", help="Path to write Markdown report (default: seo_report.md)")
+    parser.add_argument("--version", action="version", version=f"SEO-FORGE v{VERSION}")
+    parser.add_argument("--update", action="store_true", help="Atualiza o SEO-FORGE (skills globais, regras de IA e checker) para a versão mais recente do GitHub")
     args = parser.parse_args()
 
     project_path = Path(args.project_path).resolve()
 
+    if args.update:
+        update_seo_forge(project_path)
+        return
+
     print(f"\n{'='*70}")
-    print(f"  🚀 SEO-FORGE 360° - Diagnostic Engine & AI Action Planner")
+    print(f"  🚀 SEO-FORGE v{VERSION} - 360° Diagnostic Engine & AI Action Planner")
     print(f"  CW Software (https://cwsoftware.com.br)")
     print(f"{'='*70}")
     print(f"Projeto: {project_path}")
@@ -368,14 +485,14 @@ def main():
 
     total_score = min(100, tech_score + page_score)
     
-    if total_score >= 95:
+    if total_score >= 90:
         grade = "A+ (Excelente)"
         grade_color = "\033[92m"
-    elif total_score >= 85:
+    elif total_score >= 80:
         grade = "A (Muito Bom)"
         grade_color = "\033[92m"
-    elif total_score >= 70:
-        grade = "B (Bom com Alertas)"
+    elif total_score >= 65:
+        grade = "B (Bom)"
         grade_color = "\033[93m"
     else:
         grade = "C (Necessita Atenção)"
@@ -410,16 +527,18 @@ def main():
 
     if page_issues:
         print(f"\n[!] Páginas com pendências ({len(page_issues)}):")
-        for item in page_issues[:5]:
-            print(f"  - {item['file']}: {', '.join(item['issues'])}")
-        if len(page_issues) > 5:
-            print(f"  ... e mais {len(page_issues) - 5} página(s)")
+        for item in page_issues[:8]:
+            tag = "[Admin]" if item.get("is_admin") else "[Public]"
+            print(f"  - {tag} {item['file']}: {', '.join(item['issues'])}")
+        if len(page_issues) > 8:
+            print(f"  ... e mais {len(page_issues) - 8} página(s)")
 
     # Save Markdown Report
     report_file = project_path / args.report
     generate_markdown_report(report_file, project_path, tech_audit, pages, page_issues, total_score, grade)
     print(f"\n📄 Relatório de diagnóstico & Plano de Ação salvo em: {report_file.name}")
     print("💡 Você pode enviar o relatório gerado diretamente para a sua IA resolver as pendências com inteligência contextual.")
+    print("🔄 Para atualizar o SEO-FORGE: python scripts/seo_checker.py --update")
     print("=" * 70 + "\n")
 
     sys.exit(0 if total_score >= 85 else 1)

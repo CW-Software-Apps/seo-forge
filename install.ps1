@@ -15,6 +15,7 @@
 param(
     [switch]$Global,
     [switch]$Project,
+    [switch]$Update,
     [string]$TargetDir = (Get-Location).Path
 )
 
@@ -32,6 +33,13 @@ function Write-BrandHeader {
 
 Write-BrandHeader
 
+# If update flag is set, ensure both global and project are refreshed
+if ($Update) {
+    Write-Host "[*] Modo de Atualização Ativado - Baixando versões mais recentes..." -ForegroundColor Magenta
+    $Global = $true
+    $Project = $true
+}
+
 # Default to both if none specified
 if (-not $Global -and -not $Project) {
     $Global = $true
@@ -42,7 +50,8 @@ if (-not $Global -and -not $Project) {
 # 1. Global Installation (Antigravity ~/.gemini/config/skills/)
 # -------------------------------------------------------------
 if ($Global) {
-    Write-Host "[*] Installing SEO-Forge skills globally..." -ForegroundColor Green
+    $actionMsg = if ($Update) { "Updating" } else { "Installing" }
+    Write-Host "[*] $actionMsg SEO-Forge skills globally..." -ForegroundColor Green
     $geminiSkillsPath = Join-Path $env:USERPROFILE ".gemini\config\skills"
     
     $skills = @(
@@ -155,10 +164,21 @@ if ($Project) {
     }
 
     Write-Host ""
-    Write-Host "[OK] Project configured successfully for Antigravity, Claude Code, Cursor, and OpenCode!" -ForegroundColor Green
+    Write-Host " ===========================================================" -ForegroundColor Green
+    Write-Host "  [OK] SEO-FORGE configurado com sucesso!                    " -ForegroundColor Green
+    Write-Host " ===========================================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "To audit your project now, run:" -ForegroundColor Yellow
-    Write-Host "  python scripts/seo_checker.py ." -ForegroundColor White
+    Write-Host "  🤖 Agora você NÃO precisa rodar comandos manuais no terminal!" -ForegroundColor Cyan
+    Write-Host "  Abra o chat da sua IA (OpenCode, Claude Code, Antigravity, Cursor) e digite:" -ForegroundColor White
+    Write-Host ""
+    Write-Host "    👉 `"audite o SEO deste projeto`"" -ForegroundColor Yellow
+    Write-Host "       ↳ A IA roda o diagnóstico em segundo plano e te mostra a nota 0-100." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "    👉 `"corrija todo o SEO até 100%`"" -ForegroundColor Yellow
+    Write-Host "       ↳ A IA audita, injeta tags, otimiza páginas e revalida até 100% autônomo." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  🔄 Para atualizar o kit futuramente:" -ForegroundColor DarkCyan
+    Write-Host "     python scripts/seo_checker.py --update" -ForegroundColor Gray
     Write-Host ""
 }
 

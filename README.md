@@ -229,6 +229,16 @@ Para rodar o verificador `seo_checker.py`, você só precisa ter o Python 3 inst
 - **No Windows:** Abra o terminal e digite `python`. Se não tiver, o Windows abrirá a Microsoft Store para instalar em 1 clique gratuitamente.
 - **No Linux / macOS:** Geralmente já vem instalado (`python3 --version`).
 
+### 6. Como atualizar o SEO-FORGE para a versão mais recente?
+O SEO-FORGE possui **Auto-Update integrado**! Você pode atualizar todas as skills globais de IA e os arquivos do projeto com um único comando:
+```bash
+python scripts/seo_checker.py --update
+```
+Ou no Windows (PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/CW-Software-Apps/seo-forge/main/update.ps1 | iex
+```
+
 ---
 
 <div align="center">
