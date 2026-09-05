@@ -1,0 +1,33 @@
+@namespace CWSoftware.Web.Components.Shared
+@using System.Text.Json
+@using System.Text.Json.Serialization
+
+@code {
+    [Parameter, EditorRequired] public object SchemaData { get; set; } = default!;
+
+    private string SerializedJson
+    {
+        get
+        {
+            if (SchemaData is null) return string.Empty;
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            return JsonSerializer.Serialize(SchemaData, options);
+        }
+    }
+}
+
+@if (!string.IsNullOrWhiteSpace(SerializedJson))
+{
+    <HeadContent>
+        <script type="application/ld+json">
+            @((MarkupString)SerializedJson)
+        </script>
+    </HeadContent>
+}

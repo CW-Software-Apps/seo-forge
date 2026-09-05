@@ -1,0 +1,47 @@
+@namespace CWSoftware.Web.Components.Shared
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Description { get; set; } = string.Empty;
+    [Parameter] public string? CanonicalUrl { get; set; }
+    [Parameter] public string? OgImage { get; set; }
+    [Parameter] public string OgType { get; set; } = "website";
+    [Parameter] public bool NoIndex { get; set; } = false;
+    [Parameter] public string SiteName { get; set; } = "CW Software";
+    [Parameter] public string DefaultOgImage { get; set; } = "https://cwsoftware.com.br/images/og-default.jpg";
+}
+
+<PageTitle>@($"{Title} | {SiteName}")</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="@Description" />
+    @if (NoIndex)
+    {
+        <meta name="robots" content="noindex, nofollow" />
+    }
+    else
+    {
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(CanonicalUrl))
+    {
+        <link rel="canonical" href="@CanonicalUrl" />
+        <meta property="og:url" content="@CanonicalUrl" />
+    }
+
+    <!-- Open Graph (WhatsApp, LinkedIn, Facebook) -->
+    <meta property="og:site_name" content="@SiteName" />
+    <meta property="og:title" content="@Title" />
+    <meta property="og:description" content="@Description" />
+    <meta property="og:type" content="@OgType" />
+    <meta property="og:image" content="@(OgImage ?? DefaultOgImage)" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@Title" />
+    <meta name="twitter:description" content="@Description" />
+    <meta name="twitter:image" content="@(OgImage ?? DefaultOgImage)" />
+</HeadContent>

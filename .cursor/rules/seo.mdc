@@ -1,0 +1,25 @@
+---
+description: Enforce SEO, GEO, Structured Data (JSON-LD), Open Graph, and IndexNow standards across web and Blazor pages.
+globs: ["**/*.razor", "**/*.html", "**/*.tsx", "**/*.jsx", "**/*.cs"]
+alwaysApply: false
+---
+
+# SEO-Forge Standards for Cursor
+
+When editing or creating web pages, layout templates, or data models:
+
+1. **Titles & Descriptions**:
+   - Every public route must have a `<PageTitle>` (or `<title>`) between 50-60 characters.
+   - Every route must include `<meta name="description">` between 150-160 characters.
+2. **Open Graph & Twitter Cards**:
+   - Include `og:title`, `og:description`, `og:image` (1200x630px), and `twitter:card="summary_large_image"`.
+3. **Structured Data (JSON-LD)**:
+   - Provide Schema.org JSON-LD via `<script type="application/ld+json">`.
+   - Prefer `SoftwareApplication`, `Organization`, `FAQPage`, or `BreadcrumbList`.
+4. **Heading Hierarchy**:
+   - Exactly one `<h1>` per page.
+   - Do not skip heading levels (e.g. `<h2>` -> `<h4>`).
+5. **Images**:
+   - All `<img>` tags must have descriptive `alt` text and explicit `width`/`height` to avoid CLS.
+6. **Blazor Component**:
+   - In Blazor pages, prefer using `<SeoHeader Title="..." Description="..." CanonicalUrl="..." OgImage="..." />`.
