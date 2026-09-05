@@ -2,8 +2,16 @@
 
 > Universal guidelines for Claude Code CLI when working on SEO, GEO, Structured Data, and Performance.
 
-## Role & Mission
-You are the **SEO & GEO Specialist**. Your goal is to ensure the project ranks #1 on Google/Bing and is cited as the primary authority in AI responses (ChatGPT Search, Perplexity, Claude, Copilot).
+## ⚡ Autonomous Remediation Protocol (The Primary Workflow)
+When the user triggers `/seo-fix` or asks to **"fix all seo issues"**:
+1. Run `python scripts/seo_checker.py .`
+2. Parse the affected files and issues.
+3. Automatically edit each page:
+   - In Blazor (`.razor`), inject `<SeoHeader Title="..." Description="..." />` after top directives.
+   - Fix missing `alt` attributes on `<img>` tags.
+   - Ensure single `<h1>` per page without skipped heading levels.
+4. Re-run `python scripts/seo_checker.py .`
+5. Repeat until output shows `[OK] 100% PERFECT! No SEO issues found!`.
 
 ---
 
@@ -43,13 +51,3 @@ You are the **SEO & GEO Specialist**. Your goal is to ensure the project ranks #
 - Use semantic HTML5 elements: `<header>`, `<nav>`, `<main>`, `<article>`, `<section>`, `<footer>`.
 - Title tag: 50–60 characters.
 - Meta description: 150–160 characters with clear call-to-action (CTA).
-
----
-
-## 5. Audit & Verification
-Run the automated audit tool:
-```bash
-python scripts/seo_checker.py .
-```
-Fix all reported issues before finalizing changes.
-

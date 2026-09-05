@@ -127,8 +127,9 @@ if ($Project) {
     $cursorDir = Join-Path $TargetDir ".cursor\rules"
     $scriptsDir = Join-Path $TargetDir ".agent\skills\seo-fundamentals\scripts"
     $rootScriptsDir = Join-Path $TargetDir "scripts"
+    $claudeCommandsDir = Join-Path $TargetDir ".claude\commands"
 
-    @($agentDir, $skillsTargetDir, $cursorDir, $scriptsDir, $rootScriptsDir) | ForEach-Object {
+    @($agentDir, $skillsTargetDir, $cursorDir, $scriptsDir, $rootScriptsDir, $claudeCommandsDir) | ForEach-Object {
         if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
     }
 
@@ -137,6 +138,7 @@ if ($Project) {
         @{ Dest = (Join-Path $TargetDir "CLAUDE.md"); Remote = "$RepoRawBase/CLAUDE.md"; Local = "CLAUDE.md" },
         @{ Dest = (Join-Path $TargetDir "AGENTS.md"); Remote = "$RepoRawBase/AGENTS.md"; Local = "AGENTS.md" },
         @{ Dest = (Join-Path $cursorDir "seo.mdc"); Remote = "$RepoRawBase/.cursor/rules/seo.mdc"; Local = ".cursor/rules/seo.mdc" },
+        @{ Dest = (Join-Path $claudeCommandsDir "seo-fix.md"); Remote = "$RepoRawBase/.claude/commands/seo-fix.md"; Local = ".claude/commands/seo-fix.md" },
         @{ Dest = (Join-Path $agentDir "seo-specialist.md"); Remote = "$RepoRawBase/agents/seo-specialist.md"; Local = "agents/seo-specialist.md" },
         @{ Dest = (Join-Path $scriptsDir "seo_checker.py"); Remote = "$RepoRawBase/scripts/seo_checker.py"; Local = "scripts/seo_checker.py" },
         @{ Dest = (Join-Path $rootScriptsDir "seo_checker.py"); Remote = "$RepoRawBase/scripts/seo_checker.py"; Local = "scripts/seo_checker.py" }

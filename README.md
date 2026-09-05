@@ -1,30 +1,31 @@
 <div align="center">
 
 # 🚀 SEO-FORGE
-### Universal SEO & GEO Toolkit for AI Coding Agents
+### Universal SEO & GEO Autonomous Toolkit for AI Coding Agents
 **Win Google Top Rankings & ChatGPT/Perplexity AI Citations in 1 Line of Code**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-SSR%20%7C%20Interactive-512BD4?logo=blazor)](https://dotnet.microsoft.com/apps/aspnet/web-apps/blazor)
+[![OpenCode](https://img.shields.io/badge/OpenCode-AGENTS.md%20Ready-00A67E)](https://github.com/CW-Software-Apps/seo-forge)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-%2Fseo--fix%20Command-D97706?logo=anthropic)](https://claude.ai/)
 [![Antigravity](https://img.shields.io/badge/Antigravity-Skills%20Ready-4285F4?logo=google)](https://deepmind.google/)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-D97706?logo=anthropic)](https://claude.ai/)
-[![Cursor](https://img.shields.io/badge/Cursor%20%26%20OpenCode-Rules%20Included-000000)](https://cursor.com/)
+[![Cursor](https://img.shields.io/badge/Cursor%20%26%20Windsurf-Rules%20Included-000000)](https://cursor.com/)
 [![IndexNow](https://img.shields.io/badge/IndexNow-Instant%20Crawl-008080?logo=microsoft-bing)](https://www.bing.com/indexnow)
 
 <p align="center">
   <b>Desenvolvido com excelência pela <a href="https://cwsoftware.com.br">CW Software</a></b>
 </p>
 
-[🇧🇷 Português](#-português) • [🇺🇸 English](#-english)
+[🇧🇷 Português](#-português) • [🎯 A Principal Utilidade (Auto-Fix)](#-a-principal-utilidade-o-ciclo-autônomo-100-perfeito) • [🤖 Como usar no OpenCode](#-como-usar-no-opencode) • [🇺🇸 English](#-english)
 
 ---
 
 </div>
 
-## ⚡ Instalação em 1 Linha (Quickstart)
+## ⚡ Instalação em 1 Linha (Instant Setup)
 
-Abra o terminal na pasta do seu projeto e execute:
+Abra o terminal na pasta raiz do seu projeto e execute:
 
 ### Windows (PowerShell):
 ```powershell
@@ -39,22 +40,84 @@ curl -fsSL https://raw.githubusercontent.com/CW-Software-Apps/seo-forge/main/ins
 > **O que o instalador faz em 3 segundos:**
 > 1. Instala as 5 skills globais do **Antigravity** (`~/.gemini/config/skills/`).
 > 2. Detecta se o seu projeto é **Blazor/.NET** e injeta os componentes `<SeoHeader.razor>`, `<JsonLd.razor>` e o serviço C# `IndexNowService.cs`.
-> 3. Configura instruções nativas para **Claude Code** (`CLAUDE.md`), **OpenCode/Cursor** (`AGENTS.md`, `.cursor/rules/seo.mdc`) e **GitHub Copilot**.
-> 4. Injeta o validador automatizado `seo_checker.py`.
+> 3. Injeta instruções nativas para **OpenCode** (`AGENTS.md`), **Claude Code** (`CLAUDE.md`, `/seo-fix`), **Cursor/Windsurf** (`.cursor/rules/seo.mdc`) e **GitHub Copilot**.
+> 4. Injeta o validador com auto-cura em `scripts/seo_checker.py`.
+
+---
+
+# 🎯 A PRINCIPAL UTILIDADE: O Ciclo Autônomo (100% Perfeito)
+
+O verdadeiro poder do **SEO-FORGE** não é apenas fornecer regras, mas sim o **Loop de Auto-Cura Autônomo**:
+
+```mermaid
+flowchart LR
+    A[1. Instalar em 1 linha] --> B[2. Executar Auto-Fix]
+    B --> C[3. Auditoria Analisa Todas as Páginas]
+    C --> D[4. IA Injeta SeoHeader e Corrige Tags]
+    D --> E{5. Re-Auditoria}
+    E -- Erros encontrados --> D
+    E -- 0 Erros --> F[6. 100% VERDE & PERFEITO]
+```
+
+Você **não precisa** passar página por página adicionando tags manualmente. A IA ou o script executam o ciclo completo até garantir nota 100%.
+
+---
+
+# 🤖 COMO USAR NO OPENCODE
+
+O **OpenCode** suporta nativamente o arquivo [AGENTS.md](AGENTS.md) gerado pelo SEO-FORGE.
+
+### Modo 1: Mandando a IA do OpenCode fazer TUDO no Chat (Recomendado)
+Após rodar o instalador de 1 linha no projeto, abra o **OpenCode** e digite no chat:
+
+> *"@agent leia o AGENTS.md, execute o ciclo de auto-fix e corrija todo o SEO do projeto até ficar 100% perfeito."*  
+> ou simplesmente:  
+> **`corrija todo o SEO do projeto até ficar 100%`**
+
+#### O que o OpenCode fará sozinho:
+1. Executa `python scripts/seo_checker.py .` no terminal integrado.
+2. Identifica todas as páginas com metadados, títulos ou Open Graph ausentes.
+3. Edita cada arquivo `.razor` ou `.html`, inserindo o componente `<SeoHeader>` com títulos e descrições semânticas.
+4. Ajusta hierarquias de `<h1>` e adiciona `alt` em imagens.
+5. Re-executa o teste até o resultado ser:  
+   `[OK] 100% PERFECT! No SEO issues found across all analyzed pages!`
+
+### Modo 2: Auto-Fix Imediato pelo Terminal do OpenCode
+Se você quiser que o script faça a injeção instantânea via código antes de chamar a IA:
+```bash
+python scripts/seo_checker.py . --fix
+```
+O script injeta automaticamente os componentes `<SeoHeader>` e tags básicas nas páginas afetadas em menos de 1 segundo!
+
+---
+
+# 🌐 COMO USAR NAS DEMAIS IAs
+
+### 1. No Claude Code (CLI)
+O SEO-FORGE instala um **Slash Command nativo** para o Claude Code. No terminal do Claude Code, digite:
+```bash
+/seo-fix
+```
+O Claude Code assume a execução do loop autônomo e só finaliza quando o projeto estiver 100% em conformidade.
+
+### 2. No Google Antigravity
+No chat do Antigravity, chame o agente especialista:
+> *"@seo-specialist execute o auto-fix em todas as páginas e garanta 100% de conformidade."*
+
+### 3. No Cursor & Windsurf
+Graças à regra `.cursor/rules/seo.mdc` e ao `AGENTS.md`, basta abrir o Composer (`Ctrl+I` ou `Cmd+I`) e digitar:
+> *"Execute scripts/seo_checker.py e corrija todas as páginas afetadas com base nas regras do seo.mdc até 100%."*
 
 ---
 
 # 🇧🇷 Português
 
-O **SEO-FORGE** é o kit definitivo de otimização para motores de busca tradicionais (Google, Bing) e plataformas de busca por Inteligência Artificial (**GEO - Generative Engine Optimization** para ChatGPT Search, Perplexity, Claude, Microsoft Copilot e Google AI Overviews).
+### 🎯 Diferenciais Exclusivos do SEO-FORGE
 
-### 🎯 Por que o SEO-FORGE é diferente?
-
-A maioria dos pacotes de SEO foca apenas em tags HTML legadas. O **SEO-FORGE** traz:
-- ⚡ **IndexNow Nativo**: Notifica o Bing, Copilot e ChatGPT Search instantaneamente quando uma página é criada ou alterada.
+- ⚡ **IndexNow Nativo**: Notifica Bing, Microsoft Copilot e ChatGPT Search instantaneamente quando uma página é criada ou alterada.
 - 🌐 **Prerendering & Blazor SSR**: Resolve o problema histórico de páginas Blazor renderizarem vazias para robôs de busca.
-- 🤖 **Multi-AI Compatibility**: Funciona nativamente com Google Antigravity, Anthropic Claude Code CLI, Cursor, Windsurf, OpenCode e GitHub Copilot.
-- 📊 **GEO Information Gain**: Formatações específicas (definições em blocos, tabelas comparativas, citações) calibradas para que LLMs citem seu software como fonte primária.
+- 🤖 **Universalidade Total**: Funciona com **OpenCode**, **Claude Code**, **Antigravity**, **Cursor**, **Windsurf** e **Copilot**.
+- 📊 **GEO (Generative Engine Optimization)**: Estruturas de informação otimizadas para citação no ChatGPT, Perplexity e Claude.
 
 ---
 
@@ -70,9 +133,7 @@ A maioria dos pacotes de SEO foca apenas em tags HTML legadas. O **SEO-FORGE** t
 
 ---
 
-### 💻 Exemplo Prático em Blazor (.NET 8/9/10)
-
-Basta usar os componentes gerados pelo **SEO-FORGE** nas suas páginas `.razor`:
+### 💻 Exemplo em Blazor (.NET 8/9/10)
 
 ```razor
 @page "/solucoes/gestao-empresarial"
@@ -89,35 +150,11 @@ Basta usar os componentes gerados pelo **SEO-FORGE** nas suas páginas `.razor`:
 <JsonLd SchemaData="@FaqData" />
 
 <h1>Sistema de Gestão Empresarial ERP em Nuvem</h1>
-<p class="lead">Solução integrada para acelerar o crescimento da sua empresa.</p>
-
-@code {
-    private object FaqData => new
-    {
-        context = "https://schema.org",
-        type = "FAQPage",
-        mainEntity = new[]
-        {
-            new
-            {
-                type = "Question",
-                name = "Quais os requisitos para utilizar o sistema?",
-                acceptedAnswer = new
-                {
-                    type = "Answer",
-                    text = "Acesso através de qualquer navegador moderno em computadores, tablets ou smartphones."
-                }
-            }
-        }
-    };
-}
 ```
 
 ---
 
 ### ⚡ Notificação Instantânea com IndexNow em C#
-
-Quando você criar ou atualizar um produto/artigo no seu banco de dados, dispare a notificação imediata:
 
 ```csharp
 public class BlogPostService
@@ -131,10 +168,9 @@ public class BlogPostService
 
     public async Task PublishPostAsync(BlogPost post)
     {
-        // 1. Salva no banco de dados...
         await _db.SaveChangesAsync();
 
-        // 2. Notifica Bing, Copilot e ChatGPT Search instantaneamente!
+        // Notifica Bing, Copilot e ChatGPT Search instantaneamente!
         await _indexNow.NotifyUrlChangedAsync($"https://cwsoftware.com.br/blog/{post.Slug}");
     }
 }
@@ -142,36 +178,15 @@ public class BlogPostService
 
 ---
 
-### 🔍 Auditoria Automatizada
-
-Para rodar uma auditoria completa de SEO e redes sociais no seu código:
-
-```bash
-python scripts/seo_checker.py .
-```
-
----
-
 # 🇺🇸 English
 
-**SEO-FORGE** is a unified SEO & GEO (Generative Engine Optimization) toolkit designed for AI coding agents (**Antigravity**, **Claude Code**, **OpenCode**, **Cursor**, **Windsurf**, and **GitHub Copilot**) with first-class support for **Blazor (.NET 8/9/10)** and modern web applications.
+**SEO-FORGE** is a unified SEO & GEO (Generative Engine Optimization) autonomous toolkit designed for AI coding agents (**OpenCode**, **Claude Code**, **Antigravity**, **Cursor**, **Windsurf**, and **GitHub Copilot**) with first-class support for **Blazor (.NET 8/9/10)** and modern web applications.
 
-### 🌟 Key Highlights
+### 🌟 Highlights
+- **1-Line Quickstart**: Automatically sets up all AI agents and project templates.
+- **Autonomous Auto-Fix**: Direct your AI agent to audit and iteratively remediate missing metadata until 100% green.
 - **IndexNow Protocol**: Instant indexing for Microsoft Bing, Copilot, and ChatGPT Search.
 - **Blazor SSR & Prerender First**: Guarantees crawler bots receive fully rendered `<title>`, `<meta>`, and Open Graph tags on the initial HTTP response.
-- **Universal Multi-Agent Support**: Out-of-the-box configuration for every major AI coding assistant.
-- **GEO Ready**: Optimized for information gain, entity clarity, and direct citations in AI answer engines.
-
----
-
-## 👥 Compatibilidade de Agentes de IA
-
-| Assistente de IA | Como o SEO-FORGE é Carregado |
-|---|---|
-| **Google Antigravity** | Skills em `~/.gemini/config/skills/` e agente `@seo-specialist`. |
-| **Claude Code CLI** | Regras no `CLAUDE.md` e comandos em `.claude/`. |
-| **Cursor / OpenCode** | Regras nativas em `.cursor/rules/seo.mdc` e `AGENTS.md`. |
-| **GitHub Copilot** | Instruções de contexto em `.github/copilot-instructions.md`. |
 
 ---
 
@@ -184,4 +199,3 @@ Distribuído sob a licença **MIT**. Veja [LICENSE](LICENSE) para mais detalhes.
 <div align="center">
   <sub>Criado com orgulho pela equipe de engenharia da <b><a href="https://cwsoftware.com.br">CW Software</a></b></sub>
 </div>
-
