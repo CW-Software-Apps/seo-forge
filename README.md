@@ -70,11 +70,9 @@ A própria IA (OpenCode, Claude, Cursor, Antigravity) tem ferramentas integradas
 
 ## 🛠️ 3. Passo a Passo Completo (Do Zero ao 100%)
 
-Siga estas 4 etapas simples:
+### 1️⃣ Passo Único de Instalação no Projeto
 
-### Etapa 1: Instalar o SEO-FORGE no seu Projeto
-
-Abra o terminal na pasta raiz onde fica o código do seu site/sistema e execute o comando correspondente ao seu sistema operacional:
+Abra o terminal na pasta raiz onde fica o código do seu site/sistema e execute apenas este comando:
 
 #### No Windows (PowerShell):
 ```powershell
@@ -86,22 +84,38 @@ irm https://raw.githubusercontent.com/CW-Software-Apps/seo-forge/main/install.ps
 curl -fsSL https://raw.githubusercontent.com/CW-Software-Apps/seo-forge/main/install.sh | bash
 ```
 
-> 💡 **O que este comando faz automaticamente por você em 3 segundos?**
-> - Se o seu projeto for **Blazor (.NET)**, adiciona os componentes prontos `<SeoHeader.razor>` e `<JsonLd.razor>`, além do serviço `IndexNowService.cs`.
-> - Cria a pasta `scripts/` com o auditor inteligente `seo_checker.py`.
-> - Cria os arquivos de regras universais para as IAs (`AGENTS.md`, `CLAUDE.md`, regras do Cursor).
+> 💡 **O que este comando faz automaticamente em 3 segundos?**
+> - Injeta os componentes prontos `<SeoHeader.razor>`, `<JsonLd.razor>` e `IndexNowService.cs` (em projetos Blazor/.NET).
+> - Cria o auditor `scripts/seo_checker.py`.
+> - Cria as regras e instruções automáticas para todas as IAs (`AGENTS.md`, `CLAUDE.md`, regras do Cursor).
 
 ---
 
-### Etapa 2: Rodar a Auditoria Técnica
+### 2️⃣ Como Usar: O Modo 100% Automático no Chat (Recomendado)
 
-Com o kit instalado, digite no terminal da pasta do projeto:
+Depois de rodar o instalador, você **não precisa mais abrir o terminal**! Abra o chat da sua IA (**OpenCode**, **Claude Code**, **Antigravity**, **Cursor**) e simplesmente fale:
+
+#### Se você só quiser ver a nota e os problemas:
+> 💬 *"Audite o SEO deste projeto e me dê o diagnóstico com a nota de saúde."*
+
+A IA executa o auditor em segundo plano, lê as 30+ métricas e te responde na hora com o score (0 a 100) e os pontos que precisam de atenção.
+
+#### Se você quiser que a IA corrija TUDO até 100%:
+> 💬 *"Corrija todo o SEO deste projeto até a nota atingir 100%."*
+
+A IA roda o auditor em background, detecta as páginas que faltam títulos/descrições/Open Graph, edita cada arquivo com textos atrativos de alta conversão, ajusta cabeçalhos `<h1>`, adiciona `alt` em imagens e re-audita até atingir nota **100/100 A+**!
+
+---
+
+### 3️⃣ Modo Manual (Opcional - Para quem prefere o terminal)
+
+Se você preferir rodar a verificação manualmente na linha de comando em vez de pedir para a IA:
 
 ```bash
 python scripts/seo_checker.py .
 ```
 
-O auditor vai escanear todos os arquivos e exibir um painel no terminal similar a este:
+O auditor vai escanear todos os arquivos e exibir o painel com a nota e salvar o relatório em `seo_report.md`:
 
 ```text
 ======================================================================
@@ -128,31 +142,22 @@ Data:    05/09/2026
 │  Páginas Analisadas: 15    | Em Conformidade: 4    | Com Falhas: 11 │
 └────────────────────────────────────────────────────────────────────┘
 
-📄 Relatório de diagnóstico & Plano de Ação salvo em: seo_report.md
+📄 Relatório de diagnóstico salvo em: seo_report.md
 ```
 
-Ele gerou um arquivo chamado **`seo_report.md`** na raiz do seu projeto contendo a lista de todas as páginas que precisam de correção e o que falta em cada uma.
+Você pode abrir o `seo_report.md` para ver a tabela detalhada de cada página, ou simplesmente deixar a IA resolver tudo no chat.
 
 ---
 
-### Etapa 3: Deixar a IA Resolver as Pendências
+### 4️⃣ Validação Final (Garantir Nota 100/100)
 
-Abra o arquivo gerado **`seo_report.md`**. No final dele, há uma seção chamada:  
-**`🤖 Prompt Pronto para Enviar à sua IA`**.
-
-Copie aquele texto e cole no chat da IA de programação que você usa (veja os detalhes na seção abaixo).
-
----
-
-### Etapa 4: Validar e Garantir Nota 100/100
-
-Depois que a IA fizer as alterações, volte ao terminal e rode novamente:
+Se você pediu para a IA corrigir, ela mesma revalida até atingir a nota máxima. Se você estiver no modo manual, basta rodar o comando novamente:
 
 ```bash
 python scripts/seo_checker.py .
 ```
 
-Se tudo tiver sido resolvido, você verá:
+Quando tudo estiver corrigido, o resultado será:
 ```text
 📊 SCORE GERAL DE SAÚDE SEO: 100/100 - A+ (Excelente)
 ✅ 100% das páginas analisadas estão em conformidade!
