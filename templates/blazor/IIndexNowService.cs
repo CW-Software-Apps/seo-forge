@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace CWSoftware.Web.Services;
 
 /// <summary>
@@ -16,4 +21,3 @@ public interface IIndexNowService
     /// </summary>
     Task NotifyUrlsChangedAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default);
 }
-

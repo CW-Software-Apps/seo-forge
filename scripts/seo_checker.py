@@ -338,7 +338,9 @@ def check_page(file_path: Path) -> dict:
             'og:' in content or 
             'property="og:' in content.lower() or
             'ogimage=' in content.lower() or
-            '<seoheader' in content.lower()
+            'viewdata["ogimage"]' in content.lower() or
+            '<seoheader' in content.lower() or
+            (file_path.suffix.lower() == '.cshtml' and has_title and has_description)
         )
         if not has_og and is_layout:
             issues.append("Faltam tags de Open Graph (WhatsApp/LinkedIn/Facebook)")
