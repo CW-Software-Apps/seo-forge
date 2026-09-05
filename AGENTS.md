@@ -4,23 +4,35 @@
 
 ---
 
-## ⚡ AUTONOMOUS REPAIR PROTOCOL (The Primary Workflow)
+## ⚡ PROTOCOLO AUTÔNOMO DE AUDITORIA & CORREÇÃO (Zero Comandos para o Usuário)
 
-When the user asks to **"fix seo"**, **"auto seo"**, **"/seo-fix"**, or **"corrija todo o SEO até 100%"**:
+Quando o usuário disser qualquer variação de:
+- *"audite o SEO deste projeto"*
+- *"como tá o SEO?"* ou *"qual a nota de SEO?"*
+- *"verifique as pendências de SEO"*
+- *"corrija todo o SEO até 100%"* ou *"auto seo"* / *"fix seo"*
 
-1. **Step 1 - Audit**: Execute `python scripts/seo_checker.py .`
-2. **Step 2 - Analyze**: Parse the list of `Affected files` and reported issues:
-   - Missing `<title>` / `<PageTitle>`
-   - Missing `<meta name="description">`
-   - Missing Open Graph tags (`og:title`, `og:description`, `og:image`)
-   - Multiple or missing `<h1>` tags
-   - `<img>` tags missing `alt` attributes
-3. **Step 3 - Remediate Iteratively**:
-   - For **Blazor (`.razor`)**: Inject `<SeoHeader Title="..." Description="..." />` from `CWSoftware.Web.Components.Shared` right after the top directives (`@page`, `@inject`, etc.).
-   - For **HTML/React/Next.js**: Add `<title>`, `<meta name="description">`, and `<link rel="canonical">`.
-   - Add descriptive `alt` tags to all images.
-4. **Step 4 - Validate**: Run `python scripts/seo_checker.py .` again.
-5. **Step 5 - Done**: Repeat until `passed == true` (100% clean / 0 issues).
+👉 **NUNCA peça para o usuário abrir o terminal ou rodar comandos manualmente.**
+👉 **VOCÊ (Agente de IA) deve executar o fluxo completo de forma autônoma:**
+
+1. **Passo 1 - Executar a Auditoria em Segundo Plano**:
+   - Execute o comando `python scripts/seo_checker.py .` usando sua ferramenta nativa de execução de comandos/terminal (`run_command`, `bash`, `execute`, etc.).
+2. **Passo 2 - Ler e Interpretar o Diagnóstico**:
+   - Leia a saída do console e o arquivo `seo_report.md` gerado na raiz do projeto.
+   - Analise o Score de Saúde (0 a 100) e a lista de arquivos com pendências.
+3. **Passo 3 - Decidir e Agir**:
+   - **Se o usuário pediu apenas diagnóstico/análise**: apresente o Score de Saúde e resuma os pontos críticos de forma clara e amigável.
+   - **Se o usuário pediu para corrigir/resolver**: 
+     - Para **Blazor (`.razor`)**: injete `<SeoHeader Title="..." Description="..." />` no topo da página (logo após as diretivas `@page` e `@inject`), com títulos atrativos (50-60 caracteres) e descrições envolventes (150-160 caracteres).
+     - Para **HTML/Next.js/React**: injete `<title>`, `<meta name="description">` e Open Graph tags.
+     - Ajuste hierarquia para conter exatamente um `<h1>` por página.
+     - Adicione atributos `alt="..."` descritivos em tags `<img>`.
+     - Configure o `appsettings.json` e DI de IndexNow caso apontado no relatório.
+4. **Passo 4 - Revalidar Automaticamente**:
+   - Execute `python scripts/seo_checker.py .` novamente para verificar a nova nota.
+   - Repita o refinamento até atingir **100/100 A+ (Excelente)**.
+5. **Passo 5 - Reportar Sucesso**:
+   - Informe ao usuário que todas as páginas foram otimizadas e que o score atingiu 100%.
 
 ---
 

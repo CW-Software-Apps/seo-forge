@@ -23,4 +23,7 @@ When editing or creating web pages, layout templates, or data models:
    - All `<img>` tags must have descriptive `alt` text and explicit `width`/`height` to avoid CLS.
 6. **Blazor Component**:
    - In Blazor pages, prefer using `<SeoHeader Title="..." Description="..." CanonicalUrl="..." OgImage="..." />`.
+7. **Autonomous Audit**:
+   - When asked to audit, check, or fix SEO: run `python scripts/seo_checker.py .` in terminal, parse `seo_report.md`, and apply fixes without requiring manual commands from the user.
+
 

@@ -47,18 +47,24 @@ Ele é uma ferramenta gratuita que:
 
 ## ⚙️ 2. Como Funciona? (O Ciclo em 3 Passos)
 
-Você não precisa ser especialista em SEO e nem perder dias editando tags na mão:
+Você **não precisa ser especialista em SEO e nem precisa ficar rodando comandos na mão se não quiser**:
 
 ```mermaid
 flowchart LR
-    A["1️⃣ Instalação Rápida<br/>(1 comando no terminal)"] --> B["2️⃣ Auditoria 360°<br/>(Gera nota e relatório)"]
-    B --> C["3️⃣ IA Resolve as Pendências<br/>(OpenCode / Claude / Cursor)"]
-    C --> D["✅ 100% de Saúde SEO<br/>(Site no topo e links lindos)"]
+    A["1️⃣ Instalação Rápida<br/>(1 comando no terminal)"] --> B["2️⃣ Você pede no Chat da IA<br/>('Audite e corrija o SEO')"]
+    B --> C["3️⃣ A IA Roda o Auditor em Segundo Plano<br/>(Faz cálculos e gera nota 0-100)"]
+    C --> D["4️⃣ A IA Resolve Tudo Sozinha<br/>(Injeta tags, títulos e metadados)"]
+    D --> E["✅ 100% de Saúde SEO<br/>(Projeto no topo do Google)"]
 ```
 
-1. **Você instala** o kit no seu projeto com 1 linha de comando.
-2. **Você roda a auditoria** (`python scripts/seo_checker.py .`), que examina todas as páginas e cria o arquivo `seo_report.md`.
-3. **Você manda a sua IA resolver:** O próprio relatório já vem com um texto pronto (prompt) para você colar no chat da IA. A IA lê o relatório e atualiza as páginas do seu projeto com títulos atrativos, descrições envolventes e tags sociais.
+### ✨ A Maneira Mais Fácil: Deixe a IA Fazer Tudo por Você
+Depois de instalar o kit no projeto, você **não precisa abrir terminal para nada**. Basta digitar no chat da sua IA:
+
+> 💬 *"Audite o SEO deste projeto e me diga como está."*  
+> ou  
+> 💬 *"Corrija todo o SEO deste projeto até ficar 100% perfeito."*
+
+A própria IA (OpenCode, Claude, Cursor, Antigravity) tem ferramentas integradas para **executar o auditor em segundo plano**, calcular as métricas, ler o relatório e já começar a editar os arquivos com inteligência e textos de alta conversão!
 
 ---
 

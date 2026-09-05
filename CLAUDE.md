@@ -2,16 +2,24 @@
 
 > Universal guidelines for Claude Code CLI when working on SEO, GEO, Structured Data, and Performance.
 
-## ⚡ Autonomous Remediation Protocol (The Primary Workflow)
-When the user triggers `/seo-fix` or asks to **"fix all seo issues"**:
-1. Run `python scripts/seo_checker.py .`
-2. Parse the affected files and issues.
-3. Automatically edit each page:
-   - In Blazor (`.razor`), inject `<SeoHeader Title="..." Description="..." />` after top directives.
+## ⚡ Autonomous Remediation Protocol (Zero Terminal Commands for User)
+When the user triggers `/seo-fix` or asks in natural language:
+- *"audite o SEO deste projeto"* / *"audit SEO"*
+- *"como tá o SEO?"* / *"what is the SEO score?"*
+- *"corrija o SEO até 100%"* / *"fix all SEO issues"*
+
+👉 **DO NOT ask the user to open a terminal or run scripts manually.**
+👉 **Execute the full autonomous cycle:**
+1. Execute `python scripts/seo_checker.py .` using your terminal tool in the background.
+2. Read the output and `seo_report.md`.
+3. If user asked for audit/score: present the Health Score and summary directly.
+4. If user asked to fix/remediate:
+   - In Blazor (`.razor`), inject `<SeoHeader Title="..." Description="..." />` after top directives (`@page`, `@inject`).
    - Fix missing `alt` attributes on `<img>` tags.
    - Ensure single `<h1>` per page without skipped heading levels.
-4. Re-run `python scripts/seo_checker.py .`
-5. Repeat until output shows `[OK] 100% PERFECT! No SEO issues found!`.
+   - Wire IndexNow if indicated in `seo_report.md`.
+5. Re-run `python scripts/seo_checker.py .` to verify that score reached 100/100 A+.
+6. Report the final success summary to the user.
 
 ---
 
