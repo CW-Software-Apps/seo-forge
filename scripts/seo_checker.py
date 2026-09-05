@@ -156,19 +156,16 @@ def is_page_file(file_path: Path) -> bool:
     if suffix == '.razor':
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                first_lines = "".join([f.readline() for _ in range(10)])
-                if '@page' in first_lines:
-                    return True
+                head = "".join([f.readline() for _ in range(25)])
+                return '@page' in head
         except Exception:
-            pass
-        if any(d in parts for d in page_dirs):
-            return True
+            return False
 
     if any(d in parts for d in page_dirs):
         return True
     
     page_names = ['page', 'index', 'home', 'about', 'contact', 'blog', 
-                  'post', 'article', 'product', 'landing', 'layout']
+                  'post', 'article', 'product', 'landing']
     
     if any(p in stem for p in page_names):
         return True
