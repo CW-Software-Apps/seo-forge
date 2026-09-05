@@ -60,9 +60,9 @@ if ($Global) {
         }
         
         $targetFile = Join-Path $skillDir "SKILL.md"
-        $localSkillPath = Join-Path $PSScriptRoot "skills\$skill\SKILL.md"
+        $localSkillPath = if (![string]::IsNullOrEmpty($PSScriptRoot)) { Join-Path $PSScriptRoot "skills\$skill\SKILL.md" } else { $null }
 
-        if (Test-Path $localSkillPath) {
+        if ($localSkillPath -and (Test-Path $localSkillPath)) {
             Copy-Item $localSkillPath $targetFile -Force
         } else {
             $remoteUrl = "$RepoRawBase/skills/$skill/SKILL.md"
@@ -111,7 +111,7 @@ if ($Project) {
         )
 
         foreach ($t in $templates) {
-            $localTPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot $t.Local } else { "" }
+            $localTPath = if (![string]::IsNullOrEmpty($PSScriptRoot)) { Join-Path $PSScriptRoot $t.Local } else { $null }
             if ($localTPath -and (Test-Path $localTPath)) {
                 Copy-Item $localTPath $t.Dest -Force
             } else {
@@ -145,7 +145,7 @@ if ($Project) {
     )
 
     foreach ($cfg in $agentConfigs) {
-        $localCfgPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot $cfg.Local } else { "" }
+        $localCfgPath = if (![string]::IsNullOrEmpty($PSScriptRoot)) { Join-Path $PSScriptRoot $cfg.Local } else { $null }
         if ($localCfgPath -and (Test-Path $localCfgPath)) {
             Copy-Item $localCfgPath $cfg.Dest -Force
         } else {
@@ -158,7 +158,7 @@ if ($Project) {
     Write-Host "[OK] Project configured successfully for Antigravity, Claude Code, Cursor, and OpenCode!" -ForegroundColor Green
     Write-Host ""
     Write-Host "To audit your project now, run:" -ForegroundColor Yellow
-    Write-Host "  python .agent/skills/seo-fundamentals/scripts/seo_checker.py ." -ForegroundColor White
+    Write-Host "  python scripts/seo_checker.py ." -ForegroundColor White
     Write-Host ""
 }
 
