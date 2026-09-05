@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """
-SEO-FORGE: 360° SEO, Crawlability, and GEO Audit Engine
-Analyzes:
-  1. Technical Infrastructure (Robots.txt, Sitemap.xml, IndexNow Key & DI, Key Verification Endpoint)
-  2. Blazor SSR Architecture (HeadOutlet, Static Prerendering)
-  3. Structured Data (Schema.org JSON-LD, SoftwareApplication, Organization)
-  4. On-Page & Semantic Architecture (PageTitle, Meta Descriptions, H1-H6 Hierarchy)
-  5. Social Cards & Media (Open Graph, Twitter Cards, Image Alt Attributes)
+SEO-FORGE: 360° SEO, Crawlability & GEO Diagnostic Engine
+Audits web applications (Blazor, HTML, Next.js) and generates detailed diagnostic
+reports with prioritized AI Action Plans for coding agents (OpenCode, Claude, Antigravity, Cursor).
 
 Usage:
     python scripts/seo_checker.py [project_path]
-    python scripts/seo_checker.py [project_path] --fix
     python scripts/seo_checker.py [project_path] --report [report_path.md]
 """
 
@@ -18,7 +13,6 @@ import sys
 import os
 import json
 import re
-import secrets
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -51,18 +45,18 @@ def humanize_name(stem: str) -> str:
 
 
 def check_technical_infrastructure(project_path: Path) -> dict:
-    """Audit Technical SEO: robots.txt, sitemap.xml, IndexNow and DI."""
+    """Audit Technical SEO: robots.txt, sitemap.xml, IndexNow, DI and Blazor SSR."""
     results = {
-        "robots_txt": {"status": False, "detail": "Missing robots.txt"},
-        "sitemap_xml": {"status": False, "detail": "Missing sitemap.xml"},
-        "indexnow_config": {"status": False, "key": None, "host": None, "detail": "IndexNow not configured in appsettings"},
-        "indexnow_endpoint": {"status": False, "detail": "IndexNow key verification endpoint (/{key}.txt) not mapped"},
-        "indexnow_di": {"status": False, "detail": "IIndexNowService not registered in dependency injection"},
-        "blazor_headoutlet": {"status": False, "detail": "App.razor missing <HeadOutlet />"},
-        "schema_jsonld": {"status": False, "count": 0, "detail": "No JSON-LD schemas found"}
+        "robots_txt": {"status": False, "detail": "Ausente: arquivo robots.txt ou rota dinâmica não encontrada", "action": "Criar wwwroot/robots.txt apontando para o sitemap.xml"},
+        "sitemap_xml": {"status": False, "detail": "Ausente: sitemap.xml não encontrado", "action": "Criar rota dinâmica /sitemap.xml ou arquivo estático"},
+        "indexnow_config": {"status": False, "key": None, "host": None, "detail": "IndexNow não configurado no appsettings.json", "action": "Adicionar seção IndexNow com Host e Key no appsettings.json"},
+        "indexnow_endpoint": {"status": False, "detail": "Endpoint de validação /{key}.txt não mapeado", "action": "Mapear endpoint GET /{key}.txt retornando a chave em texto puro"},
+        "indexnow_di": {"status": False, "detail": "IIndexNowService não registrado na injeção de dependência", "action": "Registrar builder.Services.AddHttpClient<IIndexNowService, IndexNowService>() no Program.cs"},
+        "blazor_headoutlet": {"status": False, "detail": "App.razor não possui <HeadOutlet />", "action": "Adicionar <HeadOutlet /> no <head> do App.razor para suportar SSR de metadados"},
+        "schema_jsonld": {"status": False, "count": 0, "detail": "Nenhum schema JSON-LD encontrado", "action": "Adicionar Schema.org (Organization / SoftwareApplication) com componente <JsonLd>"}
     }
 
-    # Gather key files fast without scanning deep dependency folders
+    # Gather key infrastructure files
     key_files = []
     for pattern in ["**/Program.cs", "**/Endpoints/*.cs", "**/Components/App.razor", "**/*Sitemap*.cs", "**/*Seo*.razor", "**/Components/Layout/*.razor"]:
         for f in project_path.glob(pattern):
@@ -76,27 +70,22 @@ def check_technical_infrastructure(project_path: Path) -> dict:
         except Exception:
             pass
 
-    # 1. Check robots.txt (file or route in Program.cs/Endpoints)
-    robots_files = list(project_path.glob("**/wwwroot/robots.txt")) + list(project_path.glob("**/robots.txt"))
-    robots_files = [f for f in robots_files if not any(skip in f.parts for skip in SKIP_DIRS)]
-
+    # 1. Robots.txt
+    robots_files = [f for f in (list(project_path.glob("**/wwwroot/robots.txt")) + list(project_path.glob("**/robots.txt"))) if not any(skip in f.parts for skip in SKIP_DIRS)]
     if robots_files:
-        results["robots_txt"] = {"status": True, "detail": f"Static file found: {robots_files[0].name}"}
+        results["robots_txt"] = {"status": True, "detail": f"Arquivo estático encontrado: {robots_files[0].name}", "action": None}
     elif "/robots.txt" in code_content_all or "robots.txt" in code_content_all:
-        results["robots_txt"] = {"status": True, "detail": "Dynamic route mapped in code"}
+        results["robots_txt"] = {"status": True, "detail": "Rota dinâmica mapeada no código", "action": None}
 
-    # 2. Check sitemap.xml (file or route)
-    sitemap_files = list(project_path.glob("**/wwwroot/sitemap.xml")) + list(project_path.glob("**/sitemap.xml"))
-    sitemap_files = [f for f in sitemap_files if not any(skip in f.parts for skip in SKIP_DIRS)]
+    # 2. Sitemap.xml
+    sitemap_files = [f for f in (list(project_path.glob("**/wwwroot/sitemap.xml")) + list(project_path.glob("**/sitemap.xml"))) if not any(skip in f.parts for skip in SKIP_DIRS)]
     if sitemap_files:
-        results["sitemap_xml"] = {"status": True, "detail": f"Static file found: {sitemap_files[0].name}"}
+        results["sitemap_xml"] = {"status": True, "detail": f"Arquivo estático encontrado: {sitemap_files[0].name}", "action": None}
     elif "/sitemap.xml" in code_content_all or "MapSitemapEndpoints" in code_content_all or "sitemap.xml" in code_content_all:
-        results["sitemap_xml"] = {"status": True, "detail": "Dynamic endpoint mapped in code"}
+        results["sitemap_xml"] = {"status": True, "detail": "Endpoint dinâmico mapeado no código", "action": None}
 
-    # 3. Check IndexNow in appsettings.json
-    appsettings_files = list(project_path.glob("**/appsettings*.json"))
-    appsettings_files = [f for f in appsettings_files if not any(skip in f.parts for skip in SKIP_DIRS)]
-    
+    # 3. IndexNow appsettings.json
+    appsettings_files = [f for f in project_path.glob("**/appsettings*.json") if not any(skip in f.parts for skip in SKIP_DIRS)]
     for af in appsettings_files:
         try:
             data = json.loads(af.read_text(encoding='utf-8', errors='ignore'))
@@ -109,50 +98,51 @@ def check_technical_infrastructure(project_path: Path) -> dict:
                         "key": in_key,
                         "host": in_host,
                         "file": str(af.name),
-                        "detail": f"Configured (Host: {in_host}, Key: {in_key[:6]}...)"
+                        "detail": f"Configurado (Host: {in_host}, Chave: {in_key[:6]}...)",
+                        "action": None
                     }
                     break
         except Exception:
             pass
 
-    # 4. Check IndexNow Verification Endpoint (/{key}.txt)
+    # 4. IndexNow Endpoint
     if results["indexnow_config"]["status"]:
         key = results["indexnow_config"]["key"]
         if f"{key}.txt" in code_content_all or "IndexNow:Key" in code_content_all:
-            results["indexnow_endpoint"] = {"status": True, "detail": "Verification endpoint mapped for /{key}.txt"}
+            results["indexnow_endpoint"] = {"status": True, "detail": f"Endpoint /{key[:6]}...txt mapeado", "action": None}
     elif "indexnow" in code_content_all.lower() and ".txt" in code_content_all:
-        results["indexnow_endpoint"] = {"status": True, "detail": "Endpoint mapped via configuration pattern"}
+        results["indexnow_endpoint"] = {"status": True, "detail": "Endpoint mapeado via padrão de configuração", "action": None}
 
-    # 5. Check IndexNow DI registration
+    # 5. IndexNow DI
     if "IIndexNowService" in code_content_all and ("AddHttpClient<IIndexNowService" in code_content_all or "AddScoped<IIndexNowService" in code_content_all or "AddTransient<IIndexNowService" in code_content_all):
-        results["indexnow_di"] = {"status": True, "detail": "Registered in Dependency Injection"}
+        results["indexnow_di"] = {"status": True, "detail": "Registrado na Injeção de Dependência", "action": None}
     elif "IndexNowService" in code_content_all and ("AddHttpClient" in code_content_all or "AddScoped" in code_content_all):
-        results["indexnow_di"] = {"status": True, "detail": "Service registered in DI"}
+        results["indexnow_di"] = {"status": True, "detail": "Serviço registrado na DI", "action": None}
 
-    # 6. Check Blazor HeadOutlet in App.razor
+    # 6. Blazor HeadOutlet
     app_razor = [f for f in project_path.glob("**/App.razor") if not any(skip in f.parts for skip in SKIP_DIRS)]
     if app_razor:
         for ar in app_razor:
             try:
                 content = ar.read_text(encoding='utf-8', errors='ignore')
                 if "<HeadOutlet" in content:
-                    results["blazor_headoutlet"] = {"status": True, "detail": "Present in App.razor for SSR meta rendering"}
+                    results["blazor_headoutlet"] = {"status": True, "detail": "Presente no App.razor para SSR de metadados", "action": None}
                     break
             except Exception:
                 pass
     else:
-        results["blazor_headoutlet"] = {"status": True, "detail": "Non-Blazor project or layout handles <head>"}
+        results["blazor_headoutlet"] = {"status": True, "detail": "Projeto não-Blazor ou gerenciado pelo layout", "action": None}
 
-    # 7. Check Structured Data (JSON-LD)
-    jsonld_count = len(re.findall(r'application/ld\+json|<JsonLd', code_content_all, re.I))
-    if jsonld_count > 0:
-        results["schema_jsonld"] = {"status": True, "count": jsonld_count, "detail": f"{jsonld_count} JSON-LD schema integration(s) found"}
+    # 7. JSON-LD Schemas
+    jsonld_matches = re.findall(r'application/ld\+json|<JsonLd', code_content_all, re.I)
+    if jsonld_matches:
+        results["schema_jsonld"] = {"status": True, "count": len(jsonld_matches), "detail": f"{len(jsonld_matches)} integração(ões) de dados estruturados encontradas", "action": None}
 
     return results
 
 
 def is_page_file(file_path: Path) -> bool:
-    """Check if this file is a public-facing routable page or layout."""
+    """Check if file is a routable page or layout."""
     name = file_path.name.lower()
     stem = file_path.stem.lower()
     suffix = file_path.suffix.lower()
@@ -190,7 +180,7 @@ def is_page_file(file_path: Path) -> bool:
 
 
 def find_pages(project_path: Path) -> list:
-    """Find public page files."""
+    """Find public pages to analyze."""
     patterns = ['**/*.html', '**/*.htm', '**/*.jsx', '**/*.tsx', '**/*.razor']
     files = []
     for pattern in patterns:
@@ -203,14 +193,15 @@ def find_pages(project_path: Path) -> list:
 
 
 def check_page(file_path: Path) -> dict:
-    """Check a single page for SEO, heading, and social compliance."""
+    """Perform in-depth page diagnostics and formulate actionable AI suggestions."""
     issues = []
-    warnings = []
+    ai_suggestions = []
+    human_title = humanize_name(file_path.stem)
     
     try:
         content = file_path.read_text(encoding='utf-8', errors='ignore')
     except Exception as e:
-        return {"file": str(file_path.name), "path": file_path, "issues": [f"Error: {e}"], "warnings": []}
+        return {"file": str(file_path.name), "path": file_path, "issues": [f"Erro: {e}"], "suggestions": []}
     
     is_razor = file_path.suffix.lower() == '.razor'
     is_layout = 'Head>' in content or '<head' in content.lower() or 'Layout' in file_path.stem or is_razor
@@ -225,7 +216,8 @@ def check_page(file_path: Path) -> dict:
         '<seoheader' in content.lower()
     )
     if not has_title and is_layout:
-        issues.append("Missing <title> or <PageTitle> tag")
+        issues.append("Falta tag <title> ou <PageTitle>")
+        ai_suggestions.append(f"Adicionar <PageTitle>{human_title} | CW Software</PageTitle> ou usar <SeoHeader Title=\"{human_title}\" />")
     
     # 2. Meta description
     has_description = (
@@ -235,7 +227,8 @@ def check_page(file_path: Path) -> dict:
         '<seoheader' in content.lower()
     )
     if not has_description and is_layout:
-        issues.append("Missing meta description")
+        issues.append("Falta meta description")
+        ai_suggestions.append(f"Adicionar meta description de 150-160 caracteres com benefícios e CTA atraente para {human_title}")
     
     # 3. Open Graph tags
     has_og = (
@@ -245,276 +238,131 @@ def check_page(file_path: Path) -> dict:
         '<seoheader' in content.lower()
     )
     if not has_og and is_layout:
-        issues.append("Missing Open Graph tags")
+        issues.append("Faltam tags de Open Graph (WhatsApp/LinkedIn/Facebook)")
+        ai_suggestions.append("Incluir og:title, og:description, og:image (1200x630px) e twitter:card='summary_large_image'")
     
     # 4. Heading hierarchy
     h1_matches = re.findall(r'<h1[^>]*>', content, re.I)
     if len(h1_matches) > 1:
-        issues.append(f"Multiple H1 tags ({len(h1_matches)})")
+        issues.append(f"Múltiplos <h1> ({len(h1_matches)} encontrados)")
+        ai_suggestions.append("Manter apenas 1 <h1> principal por página e rebaixar os secundários para <h2>")
     
     # 5. Images without alt
     imgs = re.findall(r'<img[^>]+>', content, re.I)
     for img in imgs:
         if 'alt=' not in img.lower():
-            issues.append("Image missing alt attribute")
-            break
-        if 'alt=""' in img or "alt=''" in img:
-            warnings.append("Image has empty alt attribute (purely decorative)")
+            issues.append("Imagem sem atributo alt")
+            ai_suggestions.append("Adicionar texto descritivo e contextual no atributo alt da imagem para acessibilidade e SEO")
             break
     
     return {
         "file": str(file_path.name),
         "path": file_path,
         "issues": issues,
-        "warnings": warnings
+        "suggestions": ai_suggestions
     }
 
 
-def fix_page(file_path: Path, issues: list) -> bool:
-    """Automatically remediate on-page SEO issues."""
-    if not issues:
-        return False
-    
-    try:
-        content = file_path.read_text(encoding='utf-8', errors='ignore')
-    except Exception:
-        return False
-    
-    modified = False
-    suffix = file_path.suffix.lower()
-    human_title = humanize_name(file_path.stem)
-    
-    if suffix == '.razor':
-        needs_header = any(iss in issues for iss in [
-            "Missing <title> or <PageTitle> tag",
-            "Missing meta description",
-            "Missing Open Graph tags"
-        ])
-        
-        if needs_header and '<SeoHeader' not in content:
-            seo_block = (
-                f'\n<SeoHeader \n'
-                f'    Title="{human_title}" \n'
-                f'    Description="Acesse {human_title} no portal da CW Software com alta segurança e performance." />\n'
-            )
-            
-            lines = content.splitlines(keepends=True)
-            insert_idx = 0
-            for i, line in enumerate(lines):
-                stripped = line.strip()
-                if (stripped.startswith('@page') or 
-                    stripped.startswith('@attribute') or 
-                    stripped.startswith('@inject') or 
-                    stripped.startswith('@using') or 
-                    stripped.startswith('@rendermode') or
-                    stripped.startswith('@layout')):
-                    insert_idx = i + 1
-            
-            lines.insert(insert_idx, seo_block)
-            content = "".join(lines)
-            modified = True
-
-    if "Image missing alt attribute" in issues:
-        def add_alt(match):
-            tag = match.group(0)
-            if 'alt=' not in tag.lower():
-                return tag[:-1] + f' alt="{human_title} - Imagem ilustrativa">'
-            return tag
-        new_content = re.sub(r'<img[^>]+>', add_alt, content)
-        if new_content != content:
-            content = new_content
-            modified = True
-
-    if modified:
-        try:
-            file_path.write_text(content, encoding='utf-8')
-            return True
-        except Exception:
-            return False
-            
-    return False
-
-
-def remediate_technical_infrastructure(project_path: Path, tech_audit: dict) -> list:
-    """Auto-remediate robots.txt, IndexNow appsettings, and endpoints."""
-    remediations = []
-
-    # 1. Auto-create robots.txt if missing
-    if not tech_audit["robots_txt"]["status"]:
-        web_dirs = list(project_path.glob("**/wwwroot"))
-        target_dir = web_dirs[0] if web_dirs else project_path
-        robots_file = target_dir / "robots.txt"
-        robots_content = """User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /api/
-
-Sitemap: https://cwsoftware.com.br/sitemap.xml
-"""
-        try:
-            robots_file.write_text(robots_content, encoding='utf-8')
-            remediations.append("Created wwwroot/robots.txt")
-            tech_audit["robots_txt"] = {"status": True, "detail": "Created static robots.txt"}
-        except Exception as ex:
-            remediations.append(f"Failed to create robots.txt: {ex}")
-
-    # 2. Auto-configure IndexNow in appsettings.json if missing
-    if not tech_audit["indexnow_config"]["status"]:
-        appsettings_files = list(project_path.glob("**/appsettings.json"))
-        appsettings_files = [f for f in appsettings_files if not any(skip in f.parts for skip in SKIP_DIRS)]
-        if appsettings_files:
-            target_appsettings = appsettings_files[0]
-            try:
-                data = json.loads(target_appsettings.read_text(encoding='utf-8', errors='ignore'))
-                gen_key = secrets.token_hex(16)
-                data["IndexNow"] = {
-                    "Host": "cwsoftware.com.br",
-                    "Key": gen_key
-                }
-                target_appsettings.write_text(json.dumps(data, indent=4), encoding='utf-8')
-                remediations.append(f"Injected IndexNow key into {target_appsettings.name} (Key: {gen_key[:8]}...)")
-                tech_audit["indexnow_config"] = {
-                    "status": True,
-                    "key": gen_key,
-                    "host": "cwsoftware.com.br",
-                    "detail": f"Configured (Host: cwsoftware.com.br, Key: {gen_key[:6]}...)"
-                }
-            except Exception as ex:
-                remediations.append(f"Failed to update appsettings.json: {ex}")
-
-    # 3. Wire IIndexNowService in Program.cs if missing
-    if not tech_audit["indexnow_di"]["status"]:
-        program_files = list(project_path.glob("**/Program.cs"))
-        program_files = [f for f in program_files if not any(skip in f.parts for skip in SKIP_DIRS)]
-        if program_files:
-            prog = program_files[0]
-            content = prog.read_text(encoding='utf-8', errors='ignore')
-            if "AddHttpClient<IIndexNowService" not in content and "builder.Services." in content:
-                inject_di = "builder.Services.AddHttpClient<IIndexNowService, IndexNowService>();\n"
-                match = re.search(r'(builder\.Services\.[^\n]+;\n)', content)
-                if match:
-                    content = content[:match.end()] + inject_di + content[match.end():]
-                    prog.write_text(content, encoding='utf-8')
-                    remediations.append("Registered IIndexNowService in Program.cs DI")
-                    tech_audit["indexnow_di"] = {"status": True, "detail": "Registered in Program.cs DI"}
-
-    return remediations
-
-
 def generate_markdown_report(report_path: Path, project_path: Path, tech_audit: dict, pages: list, page_issues: list, score: int, grade: str):
-    """Generate a comprehensive, beautiful Markdown SEO Audit Report."""
+    """Generate a comprehensive Markdown Report with actionable AI prompts."""
     now_str = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
     
     md = []
-    md.append("# 📊 Relatório Completo de Auditoria 360° SEO & Crawlability")
-    md.append(f"> **Projeto:** `{project_path.name}` | **Data:** {now_str} | **Engine:** SEO-FORGE v2.0")
+    md.append("# 📊 Relatório Diagnóstico SEO 360° & Plano de Ação para IA")
+    md.append(f"> **Projeto:** `{project_path.name}` | **Data:** {now_str} | **Auditor:** SEO-FORGE Engine")
     md.append("")
     md.append(f"## 🏆 Score Geral de Saúde SEO: **{score}/100** ({grade})")
     md.append("")
     md.append("---")
     md.append("")
-    md.append("## 1. 🏗️ Infraestrutura Técnica & Rastreamento (IndexNow & Bots)")
+    md.append("## 1. 🏗️ Diagnóstico de Infraestrutura Técnica & Rastreamento")
     md.append("")
-    md.append("| Recurso | Status | Detalhes |")
-    md.append("|---|---|---|")
+    md.append("| Recurso | Status | Diagnóstico | Ação Recomendada para a IA |")
+    md.append("|---|---|---|---|")
     
     for item_key, item_name in [
         ("robots_txt", "Robots.txt"),
         ("sitemap_xml", "Sitemap.xml"),
-        ("indexnow_config", "Configuração do IndexNow (appsettings.json)"),
-        ("indexnow_endpoint", "Endpoint de Validação de Chave (/{key}.txt)"),
-        ("indexnow_di", "Serviço C# IndexNow em Injeção de Dependência"),
+        ("indexnow_config", "Configuração IndexNow (appsettings.json)"),
+        ("indexnow_endpoint", "Endpoint de Verificação (/{key}.txt)"),
+        ("indexnow_di", "Serviço IndexNow em Injeção de Dependência"),
         ("blazor_headoutlet", "Blazor SSR (<HeadOutlet /> no App.razor)"),
         ("schema_jsonld", "Dados Estruturados Schema.org (JSON-LD)")
     ]:
         info = tech_audit[item_key]
-        status_icon = "✅ Ativo / Em Conformidade" if info["status"] else "❌ Ausente / Pendente"
-        md.append(f"| **{item_name}** | {status_icon} | {info['detail']} |")
+        status_icon = "✅ Em Conformidade" if info["status"] else "❌ Requer Ação"
+        action_txt = info["action"] if not info["status"] else "Nenhuma ação necessária"
+        md.append(f"| **{item_name}** | {status_icon} | {info['detail']} | {action_txt} |")
     
     md.append("")
     md.append("---")
     md.append("")
-    md.append("## 2. 📄 Auditoria On-Page & Metadados Sociais")
-    md.append(f"- **Páginas e Rotas Analisadas:** `{len(pages)}`")
+    md.append("## 2. 📄 Diagnóstico On-Page & Metadados por Página")
+    md.append(f"- **Páginas Analisadas:** `{len(pages)}`")
     md.append(f"- **Páginas com Pendências:** `{len(page_issues)}`")
     md.append("")
 
     if page_issues:
-        md.append("| Arquivo | Pendências Identificadas |")
-        md.append("|---|---|")
+        md.append("| Arquivo | Problemas Detectados | Instrução de Otimização para a IA |")
+        md.append("|---|---|---|")
         for item in page_issues:
             issues_str = "<br>".join([f"• {iss}" for iss in item["issues"]])
-            md.append(f"| `{item['file']}` | {issues_str} |")
+            sugg_str = "<br>".join([f"→ {sug}" for sug in item["suggestions"]])
+            md.append(f"| `{item['file']}` | {issues_str} | {sugg_str} |")
     else:
-        md.append("> ✅ **100% das páginas analisadas estão em conformidade com PageTitle, Meta Description e Open Graph.**")
+        md.append("> ✅ **Excelente! Todas as páginas analisadas possuem títulos, meta descriptions, Open Graph e hierarquia de cabeçalhos válidos.**")
 
     md.append("")
     md.append("---")
     md.append("")
-    md.append("## 3. 🎯 Recomendações e Próximos Passos")
-    if score >= 90:
-        md.append("1. **Indexação Instantânea:** O protocolo IndexNow está configurado para avisar Bing, Copilot e ChatGPT Search automaticamente a cada alteração.")
-        md.append("2. **Monitoramento:** Acompanhe o Google Search Console e o Bing Webmaster Tools semanalmente para acompanhar a indexação das URLs.")
-        md.append("3. **GEO:** Mantenha tabelas comparativas e dados objetivos nas páginas para facilitar citações diretas por inteligências artificiais.")
-    else:
-        md.append("Execute o modo de auto-remediação para sanar as pendências restantes:")
-        md.append("```bash\npython scripts/seo_checker.py . --fix\n```")
-
+    md.append("## 3. 🤖 Prompt Pronto para Enviar à sua IA (OpenCode / Claude / Antigravity / Cursor)")
+    md.append("")
+    md.append("Copie e cole o prompt abaixo no chat da sua IA favorita para que ela execute todas as melhorias apontadas neste relatório:")
+    md.append("")
+    md.append("```text")
+    md.append("Olá! Atue como especialista em SEO/GEO e utilize as informações do arquivo seo_report.md para resolver todas as pendências identificadas no projeto:")
+    md.append("1. Infraestrutura: Revise a tabela de Infraestrutura Técnica e configure quaisquer itens pendentes (IndexNow, robots.txt, sitemap, DI).")
+    md.append("2. On-Page: Edite as páginas listadas com pendências inserindo o componente <SeoHeader> com títulos envolventes (50-60 caracteres) e descrições ricas em benefícios (150-160 caracteres com CTA).")
+    md.append("3. Semântica: Garanta apenas um <h1> por página e adicione textos alternativos descritivos aos elementos <img>.")
+    md.append("4. Ao concluir, execute 'python scripts/seo_checker.py .' no terminal para validar que o score atingiu 100/100.")
+    md.append("```")
     md.append("")
     md.append("---")
-    md.append("<div align=\"center\"><sub>Relatório gerado automaticamente pelo <b>SEO-FORGE</b> (CW Software).</sub></div>")
+    md.append("<div align=\"center\"><sub>Gerado pelo <b>SEO-FORGE</b> (CW Software) • <a href=\"https://github.com/CW-Software-Apps/seo-forge\">github.com/CW-Software-Apps/seo-forge</a></sub></div>")
 
     report_path.write_text("\n".join(md), encoding='utf-8')
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SEO-FORGE 360° Comprehensive SEO & Crawlability Audit Engine")
+    parser = argparse.ArgumentParser(description="SEO-FORGE 360° Diagnostic Engine & AI Task Generator")
     parser.add_argument("project_path", nargs="?", default=".", help="Target project root directory")
-    parser.add_argument("--fix", action="store_true", help="Automatically remediate missing technical configs and on-page tags")
-    parser.add_argument("--report", nargs="?", const="seo_report.md", default="seo_report.md", help="Generate detailed Markdown report (default: seo_report.md)")
+    parser.add_argument("--report", nargs="?", const="seo_report.md", default="seo_report.md", help="Path to write Markdown report (default: seo_report.md)")
     args = parser.parse_args()
 
     project_path = Path(args.project_path).resolve()
 
     print(f"\n{'='*70}")
-    print(f"  🚀 SEO-FORGE 360° - Comprehensive SEO, Crawlability & GEO Audit")
+    print(f"  🚀 SEO-FORGE 360° - Diagnostic Engine & AI Action Planner")
     print(f"  CW Software (https://cwsoftware.com.br)")
     print(f"{'='*70}")
     print(f"Projeto: {project_path}")
     print(f"Data:    {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-    print(f"Modo:    {'Auto-Remediação Ativada (--fix)' if args.fix else 'Auditoria Completa 360°'}")
     print("-" * 70)
 
-    # 1. Run Technical Infrastructure Audit
+    # 1. Technical Audit
     tech_audit = check_technical_infrastructure(project_path)
-    
-    if args.fix:
-        remedies = remediate_technical_infrastructure(project_path, tech_audit)
-        if remedies:
-            print("\n[⚡ Auto-Remediação Técnica]")
-            for rem in remedies:
-                print(f"  -> {rem}")
 
-    # 2. Run Page-level Audit
+    # 2. Page Diagnostics
     pages = find_pages(project_path)
     page_issues = []
-    fixed_pages = 0
 
     for f in pages:
         result = check_page(f)
         if result["issues"]:
-            if args.fix:
-                if fix_page(f, result["issues"]):
-                    fixed_pages += 1
-                    result = check_page(f)
-            if result["issues"]:
-                page_issues.append(result)
+            page_issues.append(result)
 
-    # 3. Calculate 360° Score
-    # Technical: 35 pts (5 pts per item, total 7 items)
+    # 3. Calculate Score
     tech_score = sum(5 for v in tech_audit.values() if isinstance(v, dict) and v.get("status", False))
-    
-    # Page compliance: 65 pts
     if pages:
         page_ratio = (len(pages) - len(page_issues)) / len(pages)
         page_score = int(page_ratio * 65)
@@ -525,19 +373,19 @@ def main():
     
     if total_score >= 95:
         grade = "A+ (Excelente)"
-        grade_color = "\033[92m" # Green
+        grade_color = "\033[92m"
     elif total_score >= 85:
         grade = "A (Muito Bom)"
         grade_color = "\033[92m"
     elif total_score >= 70:
         grade = "B (Bom com Alertas)"
-        grade_color = "\033[93m" # Yellow
+        grade_color = "\033[93m"
     else:
         grade = "C (Necessita Atenção)"
-        grade_color = "\033[91m" # Red
+        grade_color = "\033[91m"
     end_color = "\033[0m"
 
-    # Display Terminal Dashboard
+    # Terminal Dashboard
     print(f"\n📊 SCORE GERAL DE SAÚDE SEO: {grade_color}{total_score}/100 - {grade}{end_color}\n")
     
     print("┌" + "─" * 68 + "┐")
@@ -553,7 +401,7 @@ def main():
         ("Dados Estruturados (JSON-LD)", "schema_jsonld")
     ]:
         status_sym = "✅" if tech_audit[key]["status"] else "❌"
-        detail_txt = tech_audit[key]["detail"][:40]
+        detail_txt = tech_audit[key]["detail"][:38]
         print(f"│  {status_sym} {name:<32} {detail_txt:<30} │")
     print("└" + "─" * 68 + "┘")
 
@@ -570,10 +418,11 @@ def main():
         if len(page_issues) > 5:
             print(f"  ... e mais {len(page_issues) - 5} página(s)")
 
-    # Generate Markdown Report
+    # Save Markdown Report
     report_file = project_path / args.report
     generate_markdown_report(report_file, project_path, tech_audit, pages, page_issues, total_score, grade)
-    print(f"\n📄 Relatório detalhado salvo em: {report_file.name}")
+    print(f"\n📄 Relatório de diagnóstico & Plano de Ação salvo em: {report_file.name}")
+    print("💡 Você pode enviar o relatório gerado diretamente para a sua IA resolver as pendências com inteligência contextual.")
     print("=" * 70 + "\n")
 
     sys.exit(0 if total_score >= 85 else 1)

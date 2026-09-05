@@ -15,3 +15,4 @@ Execute the full autonomous SEO audit and repair cycle on this codebase:
 3. Re-run `python scripts/seo_checker.py .`
 4. Repeat until the checker returns `[OK] 100% PERFECT! No SEO issues found!`.
 5. Present a concise summary of all files updated.
+
