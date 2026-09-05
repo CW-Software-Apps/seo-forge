@@ -50,3 +50,4 @@ if (!string.IsNullOrWhiteSpace(indexNowKey))
     app.MapGet($"/{indexNowKey}.txt", () => Results.Text(indexNowKey, "text/plain"));
 }
 */
+

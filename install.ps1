@@ -126,8 +126,9 @@ if ($Project) {
     $skillsTargetDir = Join-Path $TargetDir ".agent\skills"
     $cursorDir = Join-Path $TargetDir ".cursor\rules"
     $scriptsDir = Join-Path $TargetDir ".agent\skills\seo-fundamentals\scripts"
+    $rootScriptsDir = Join-Path $TargetDir "scripts"
 
-    @($agentDir, $skillsTargetDir, $cursorDir, $scriptsDir) | ForEach-Object {
+    @($agentDir, $skillsTargetDir, $cursorDir, $scriptsDir, $rootScriptsDir) | ForEach-Object {
         if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
     }
 
@@ -137,7 +138,8 @@ if ($Project) {
         @{ Dest = (Join-Path $TargetDir "AGENTS.md"); Remote = "$RepoRawBase/AGENTS.md"; Local = "AGENTS.md" },
         @{ Dest = (Join-Path $cursorDir "seo.mdc"); Remote = "$RepoRawBase/.cursor/rules/seo.mdc"; Local = ".cursor/rules/seo.mdc" },
         @{ Dest = (Join-Path $agentDir "seo-specialist.md"); Remote = "$RepoRawBase/agents/seo-specialist.md"; Local = "agents/seo-specialist.md" },
-        @{ Dest = (Join-Path $scriptsDir "seo_checker.py"); Remote = "$RepoRawBase/scripts/seo_checker.py"; Local = "scripts/seo_checker.py" }
+        @{ Dest = (Join-Path $scriptsDir "seo_checker.py"); Remote = "$RepoRawBase/scripts/seo_checker.py"; Local = "scripts/seo_checker.py" },
+        @{ Dest = (Join-Path $rootScriptsDir "seo_checker.py"); Remote = "$RepoRawBase/scripts/seo_checker.py"; Local = "scripts/seo_checker.py" }
     )
 
     foreach ($cfg in $agentConfigs) {
@@ -157,3 +159,4 @@ if ($Project) {
     Write-Host "  python .agent/skills/seo-fundamentals/scripts/seo_checker.py ." -ForegroundColor White
     Write-Host ""
 }
+

@@ -50,3 +50,4 @@ description: On-page SEO, semantic HTML5 structure, strict heading hierarchy (H1
 2. **Decorative Images**: If an image is purely decorative, set `alt=""` and `aria-hidden="true"`.
 3. **Explicit Dimensions**: Always specify `width` and `height` to prevent layout shifts (CLS).
 4. **Native Lazy Loading**: Add `loading="lazy"` to all images below the fold.
+

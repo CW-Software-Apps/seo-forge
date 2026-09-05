@@ -39,3 +39,4 @@ LLMs parse structured tables with high accuracy:
 1. Link brand and author entities via Schema.org `sameAs` (LinkedIn, GitHub, Crunchbase).
 2. Explicitly provide `PublishedDate` and `LastModifiedDate`.
 3. Use **IndexNow** to instantly alert Bing and Copilot crawlers when docs or pages change.
+

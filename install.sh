@@ -34,14 +34,17 @@ done
 mkdir -p "$TARGET_DIR/.agent/agents"
 mkdir -p "$TARGET_DIR/.cursor/rules"
 mkdir -p "$TARGET_DIR/.agent/skills/seo-fundamentals/scripts"
+mkdir -p "$TARGET_DIR/scripts"
 
 curl -fsSL "$REPO_RAW_BASE/CLAUDE.md" -o "$TARGET_DIR/CLAUDE.md"
 curl -fsSL "$REPO_RAW_BASE/AGENTS.md" -o "$TARGET_DIR/AGENTS.md"
 curl -fsSL "$REPO_RAW_BASE/.cursor/rules/seo.mdc" -o "$TARGET_DIR/.cursor/rules/seo.mdc"
 curl -fsSL "$REPO_RAW_BASE/agents/seo-specialist.md" -o "$TARGET_DIR/.agent/agents/seo-specialist.md"
 curl -fsSL "$REPO_RAW_BASE/scripts/seo_checker.py" -o "$TARGET_DIR/.agent/skills/seo-fundamentals/scripts/seo_checker.py"
+curl -fsSL "$REPO_RAW_BASE/scripts/seo_checker.py" -o "$TARGET_DIR/scripts/seo_checker.py"
 
 echo ""
 echo "[OK] SEO-Forge installed successfully!"
 echo "Audit your project by running: python3 .agent/skills/seo-fundamentals/scripts/seo_checker.py ."
 echo ""
+

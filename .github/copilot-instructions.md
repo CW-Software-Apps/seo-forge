@@ -13,3 +13,4 @@ When writing, refactoring, or generating web components, pages, or backend route
   - Enforce `og:image` dimensions (1200x630px).
 - **Structured Data**:
   - Output standard JSON-LD formatted with `@context: "https://schema.org"`.
+

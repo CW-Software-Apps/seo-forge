@@ -52,3 +52,4 @@ Universal expert in SEO and GEO (Generative Engine Optimization) for traditional
 - [ ] Clear 2-3 sentence definition blocks below headings
 - [ ] Expert quotes attributed
 - [ ] "Last updated" timestamps explicit
+

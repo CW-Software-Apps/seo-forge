@@ -225,3 +225,4 @@ Ensure the following headers are configured in production middleware:
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - Canonical redirects: 301 redirect all HTTP to HTTPS and non-canonical domains (e.g. `http://cwsoftware.com.br` -> `https://cwsoftware.com.br`).
+

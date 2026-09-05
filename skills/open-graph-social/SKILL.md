@@ -54,3 +54,4 @@ description: Open Graph protocol, Twitter Cards, social sharing rich previews, W
 <meta name="twitter:description" content="Aumente a produtividade e transforme a gestão da sua empresa com as soluções inteligentes da CW Software." />
 <meta name="twitter:image" content="https://cwsoftware.com.br/images/og/solucoes-1200x630.jpg" />
 ```
+

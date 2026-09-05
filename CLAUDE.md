@@ -52,3 +52,4 @@ Run the automated audit tool:
 python scripts/seo_checker.py .
 ```
 Fix all reported issues before finalizing changes.
+

@@ -184,3 +184,4 @@ Distribuído sob a licença **MIT**. Veja [LICENSE](LICENSE) para mais detalhes.
 <div align="center">
   <sub>Criado com orgulho pela equipe de engenharia da <b><a href="https://cwsoftware.com.br">CW Software</a></b></sub>
 </div>
+

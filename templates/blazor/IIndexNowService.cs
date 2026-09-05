@@ -16,3 +16,4 @@ public interface IIndexNowService
     /// </summary>
     Task NotifyUrlsChangedAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default);
 }
+

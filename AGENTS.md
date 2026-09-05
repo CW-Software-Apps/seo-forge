@@ -30,3 +30,4 @@
 - Exactly **one `<h1>`** per page.
 - Do not jump heading levels (e.g. `<h2>` directly to `<h4>`).
 - Every `<img>` requires a meaningful `alt` attribute describing the content. Purely decorative images must use `alt=""` and `aria-hidden="true"`.
+
