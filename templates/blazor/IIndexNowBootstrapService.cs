@@ -177,7 +177,7 @@ public class IndexNowBootstrapService : IIndexNowBootstrapService, IHostedServic
         {
             try
             {
-                await _indexNowService.NotifyUrlChangedAsync("");
+                await _indexNowService.NotifyUrlChangedAsync($"https://{host}");
                 result = result with { ApiPingOk = true, ApiPingDetail = "Submissão de teste aceita pela API (2xx)" };
             }
             catch (IndexNowSubmissionException ex)

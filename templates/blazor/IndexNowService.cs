@@ -43,7 +43,7 @@ public class IndexNowService : IIndexNowService
 
         var urlList = urls
             .Where(u => !string.IsNullOrWhiteSpace(u))
-            .Select(u => u.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? u : $"https://{host}{u}")
+            .Select(u => u.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? u : $"https://{host}/{u.TrimStart('/')}")
             .Distinct()
             .ToList();
 
