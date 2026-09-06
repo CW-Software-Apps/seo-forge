@@ -84,20 +84,24 @@ public class MarkdownBlogService : IBlogService
 -----------------------------------------------------------------------
 Register and wire an admin-only button that submits all existing URLs once:
 
-// Program.cs
+// Program.cs - automatic: the bootstrap service is a hosted service and runs
+// ONCE on startup if no previous stamp exists (reads the project's own
+// /sitemap.xml to build the URL list). No admin button or curl needed.
 builder.Services.AddHttpClient<IIndexNowService, IndexNowService>();
 builder.Services.AddSingleton<IIndexNowBootstrapService, IndexNowBootstrapService>();
+builder.Services.AddHostedService<IndexNowBootstrapService>(p => (IndexNowBootstrapService)p.GetRequiredService<IIndexNowBootstrapService>());
 
-// Admin page (Blazor) - builds the URL list and submits in one batch:
-var paths = new List<string> { "", "blog", "pt/blog" };
-foreach (var slug in allVisibleSlugs)
+// Optional manual re-submission API (protected by AdminPassword header):
+app.MapPost("/api/seo/indexnow/bootstrap", async (IIndexNowBootstrapService bootstrap, IConfiguration cfg, HttpRequest request, List<string> paths) =>
 {
-    paths.Add($"blog/{slug}");
-    paths.Add($"pt/blog/{slug}");
-}
-var count = await IndexNowBootstrap.SubmitPathsAsync(paths);
+    var adminKey = cfg["AdminPassword"] ?? Environment.GetEnvironmentVariable("AdminPassword");
+    if (string.IsNullOrEmpty(adminKey) || request.Headers["x-admin-key"].FirstOrDefault() != adminKey)
+        return Results.Unauthorized();
+    var count = await bootstrap.SubmitPathsAsync(paths);
+    return Results.Ok(new { submitted = count });
+});
 
-// Use GetLastBootstrapUtc() to show "last submitted" in the UI and warn
-// before accidental re-submission (avoid IndexNow spam blocking).
+// GetLastBootstrapUtc() can be shown in the admin UI to display the last
+// submission date and warn before an accidental re-submission.
 */
 

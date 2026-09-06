@@ -231,7 +231,8 @@ def fix_indexnow_infrastructure(project_path: Path, host: str | None) -> bool:
 
         di_lines = [
             "builder.Services.AddHttpClient<IIndexNowService, IndexNowService>();",
-            "builder.Services.AddSingleton<IIndexNowBootstrapService, IndexNowBootstrapService>();"
+            "builder.Services.AddSingleton<IIndexNowBootstrapService, IndexNowBootstrapService>();",
+            "builder.Services.AddHostedService<IndexNowBootstrapService>(p => (IndexNowBootstrapService)p.GetRequiredService<IIndexNowBootstrapService>()); // auto-bootstrap on startup"
         ]
         missing_di = [l for l in di_lines if l not in content]
         if missing_di and "builder.Services" in content:
@@ -302,10 +303,15 @@ def check_technical_infrastructure(project_path: Path) -> dict:
     key_files = []
     for pattern in [
         "**/Program.cs", "**/Startup.cs", "**/Endpoints/*.cs",
+        "**/Controllers/*.cs", "**/Middleware/*.cs",
         "**/Components/App.razor", "**/Pages/App.razor",
         "**/Pages/_Host.cshtml", "**/*Host*.cshtml",
         "**/*Sitemap*.*", "**/*Seo*.razor", "**/Components/Layout/*.razor",
-        "**/Pages/Shared/_Layout.cshtml", "**/Views/Shared/_Layout.cshtml"
+        "**/Pages/Shared/_Layout.cshtml", "**/Views/Shared/_Layout.cshtml",
+        # Next.js / React / Node
+        "**/next.config.js", "**/next.config.ts", "**/next.config.mjs",
+        "**/app/robots.ts", "**/app/robots.js", "**/app/sitemap.ts", "**/app/sitemap.js",
+        "**/middleware.ts", "**/middleware.js", "**/middleware.py"
     ]:
         for f in project_path.glob(pattern):
             if not any(skip in f.parts for skip in SKIP_DIRS):
@@ -318,19 +324,27 @@ def check_technical_infrastructure(project_path: Path) -> dict:
         except Exception:
             pass
 
-    # 1. Robots.txt
-    robots_files = [f for f in (list(project_path.glob("**/wwwroot/robots.txt")) + list(project_path.glob("**/robots.txt"))) if not any(skip in f.parts for skip in SKIP_DIRS)]
+    # 1. Robots.txt (all serving possibilities: static, dynamic route, controller, middleware, framework convention)
+    robots_files = [f for f in (
+        list(project_path.glob("**/wwwroot/robots.txt")) +
+        list(project_path.glob("**/public/robots.txt")) +
+        list(project_path.glob("**/robots.txt"))
+    ) if not any(skip in f.parts for skip in SKIP_DIRS)]
     if robots_files:
         results["robots_txt"] = {"status": True, "detail": f"Arquivo estático encontrado: {robots_files[0].name}", "action": None}
-    elif "/robots.txt" in code_content_all or "robots.txt" in code_content_all:
-        results["robots_txt"] = {"status": True, "detail": "Rota dinâmica mapeada no código", "action": None}
+    elif "robots.txt" in code_content_all:
+        results["robots_txt"] = {"status": True, "detail": "Servido dinamicamente (rota/controller/middleware/framework)", "action": None}
 
-    # 2. Sitemap.xml
-    sitemap_files = [f for f in (list(project_path.glob("**/wwwroot/sitemap.xml")) + list(project_path.glob("**/sitemap.xml"))) if not any(skip in f.parts for skip in SKIP_DIRS)]
+    # 2. Sitemap.xml (all serving possibilities: static, dynamic route, controller, middleware, framework convention)
+    sitemap_files = [f for f in (
+        list(project_path.glob("**/wwwroot/sitemap.xml")) +
+        list(project_path.glob("**/public/sitemap.xml")) +
+        list(project_path.glob("**/sitemap.xml"))
+    ) if not any(skip in f.parts for skip in SKIP_DIRS)]
     if sitemap_files:
         results["sitemap_xml"] = {"status": True, "detail": f"Arquivo estático encontrado: {sitemap_files[0].name}", "action": None}
-    elif "/sitemap.xml" in code_content_all or "MapSitemapEndpoints" in code_content_all or "sitemap.xml" in code_content_all:
-        results["sitemap_xml"] = {"status": True, "detail": "Endpoint dinâmico mapeado no código", "action": None}
+    elif "sitemap.xml" in code_content_all or "MapSitemapEndpoints" in code_content_all or "generateSitemap" in code_content_all:
+        results["sitemap_xml"] = {"status": True, "detail": "Servido dinamicamente (rota/controller/middleware/framework)", "action": None}
 
     # 3. IndexNow appsettings.json
     appsettings_files = [f for f in project_path.glob("**/appsettings*.json") if not any(skip in f.parts for skip in SKIP_DIRS)]
