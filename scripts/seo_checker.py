@@ -158,6 +158,91 @@ if (!string.IsNullOrEmpty(indexNowKey))
 """.strip()
 
 
+# Domains that should never be inferred as the site's production host
+_NOISE_HOSTS = (
+    "localhost", "127.0.0.1", "0.0.0.0", "example.com", "test.com", "meudominio.com",
+    "seusite.com", "yourdomain", "github.com", "raw.githubusercontent", "nuget.org",
+    "microsoft.com", "google.com", "googleapis.com", "gstatic.com", "indexnow.org",
+    "sitemaps.org", "w3.org", "schema.org", "jquery.com", "jsdelivr.net", "unpkg.com",
+    "cdnjs.cloudflare.com", "cloudflare.com", "youtube.com", "youtu.be", "twitter.com",
+    "x.com", "instagram.com", "linkedin.com", "facebook.com", "unsplash.com",
+    "gravatar.com", "wikipedia.org", "fonts.", "cdn.", "smtp.", "mail.",
+)
+
+
+def _extract_hosts(text: str) -> list:
+    """Extract plausible production hostnames from text (URLs)."""
+    hosts = re.findall(r'https?://([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?:[/:\"\s<]|$)', text, re.I)
+    return [h.lower().rstrip('.') for h in hosts]
+
+
+def infer_site_host(project_path: Path) -> str | None:
+    """Infer the production host from config keys, robots.txt, sitemap.xml and code.
+
+    Returns None when nothing plausible is found (caller falls back to
+    interactive prompt or the --host argument).
+    """
+    candidates = []
+
+    def add(text: str):
+        for h in _extract_hosts(text or ""):
+            if not any(n in h for n in _NOISE_HOSTS) and "localhost" not in h:
+                candidates.append(h)
+
+    # 1. appsettings*.json common keys (incl. Production variants)
+    for af in project_path.glob("**/appsettings*.json"):
+        if any(skip in af.parts for skip in SKIP_DIRS):
+            continue
+        try:
+            data = json.loads(af.read_text(encoding="utf-8", errors="ignore"))
+
+            def walk(node, path=""):
+                if isinstance(node, dict):
+                    for k, v in node.items():
+                        yield from walk(v, f"{path}:{k}" if path else k)
+                else:
+                    yield path, node
+
+            for key, val in walk(data):
+                key_last = key.split(":")[-1].lower()
+                if key_last in ("host", "baseurl", "siteurl", "domain", "appurl", "applicationurl", "publicurl", "canonicalbase", "canonicalurl", "websiteurl"):
+                    if isinstance(val, str) and val:
+                        if val.startswith("http"):
+                            add(val)
+                        else:
+                            candidates.append(val.lower().rstrip('/').rstrip('.'))
+                elif key_last == "origins":  # CORS origins list
+                    for origin in (val if isinstance(val, list) else [val]):
+                        if isinstance(origin, str):
+                            add(origin)
+        except Exception:
+            pass
+
+    # 2. Static robots.txt / sitemap.xml often carry absolute URLs
+    for pattern in ("**/robots.txt", "**/sitemap.xml"):
+        for f in project_path.glob(pattern):
+            if any(skip in f.parts for skip in SKIP_DIRS):
+                continue
+            try:
+                add(f.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                pass
+
+    # 3. Hardcoded absolute URLs in key infrastructure code (sitemap/canonical generation)
+    for f in [p for p in project_path.glob("**/*Sitemap*.cs") if not any(s in p.parts for s in SKIP_DIRS)]:
+        try:
+            add(f.read_text(encoding="utf-8", errors="ignore"))
+        except Exception:
+            pass
+
+    if not candidates:
+        return None
+
+    # Most frequent candidate wins
+    best = max(set(candidates), key=candidates.count)
+    return best
+
+
 def fix_indexnow_infrastructure(project_path: Path, host: str | None) -> bool:
     """Auto-fix the IndexNow infrastructure (templates, config, DI, endpoints).
 
@@ -200,6 +285,10 @@ def fix_indexnow_infrastructure(project_path: Path, host: str | None) -> bool:
             data = json.loads(appsettings_path.read_text(encoding="utf-8"))
             if "IndexNow" not in data or not data["IndexNow"].get("Key"):
                 key = data.get("IndexNow", {}).get("Key") or secrets.token_hex(16)
+                if not host:
+                    host = infer_site_host(project_path)
+                    if host:
+                        print(f"  [OK] Host inferido automaticamente: {host} (use --host para sobrescrever)")
                 if not host:
                     try:
                         host = input("  Host de produção do site (ex: meudominio.com) [localhost]: ").strip()
@@ -266,21 +355,57 @@ def fix_indexnow_infrastructure(project_path: Path, host: str | None) -> bool:
     else:
         print("  [!] Program.cs não encontrado - DI/endpoint devem ser configurados manualmente")
 
+    # Post-fix status: report what remains pending (dispatch is not auto-fixable)
+    dispatch_found = False
+    cs_all = ""
+    for f in [p for p in web_dir.glob("**/*.cs") if not any(s in p.parts for s in SKIP_DIRS)]:
+        try:
+            cs_all += f.read_text(encoding="utf-8", errors="ignore") + "\n"
+        except Exception:
+            pass
+    for f in [p for p in web_dir.glob("**/*.cs") if not any(s in p.parts for s in SKIP_DIRS)]:
+        if "indexnow" in f.name.lower():
+            continue
+        try:
+            if re.search(r'\.NotifyUrls?ChangedAsync\s*\(', f.read_text(encoding="utf-8", errors="ignore")):
+                dispatch_found = True
+                break
+        except Exception:
+            pass
+    bootstrap_found = "IndexNowBootstrap" in cs_all
+
+    remaining = []
+    if not dispatch_found:
+        remaining.append(
+            "❌ DISPATCH (auto-notify): integração MORTA até o gancho existir.\n"
+            "     1. Injete IIndexNowService no serviço que salva conteúdo público (ex: SavePostAsync)\n"
+            "     2. Chame NotifyUrlChangedAsync ao publicar/editar (snippet nº 3 em templates/blazor/ProgramSnippets.cs)\n"
+            "     3. Ou envie o seo_report.md para sua IA resolver"
+        )
+    else:
+        print("  [OK] Dispatch auto-notify: NotifyUrlChangedAsync já é invocado no fluxo de conteúdo")
+
+    if bootstrap_found:
+        print("  [OK] Bootstrap: submissão em lote das URLs existentes configurada (automática no startup)")
+    else:
+        remaining.append("❌ BOOTSTRAP: submissão one-time das URLs existentes não encontrada (veja snippet nº 4 em templates/blazor/ProgramSnippets.cs)")
+
     if changed:
         print("""
   [OK] Infraestrutura IndexNow aplicada! Próximos passos:
    1. dotnet build (validar compilação)
-   2. AUTO-NOTIFY (obrigatório): injete IIndexNowService no serviço que salva
-      conteúdo público e chame NotifyUrlsChangedAsync (ver templates/blazor/ProgramSnippets.cs
-      ou envie o seo_report.md para sua IA).
-   3. BOOTSTRAP one-time (após deploy): envie todas as URLs existentes:
-        curl -X POST https://SEU-SITE/api/seo/indexnow/bootstrap \\
-             -H "x-admin-key: SUA_ADMIN_PASSWORD" \\
-             -H "Content-Type: application/json" \\
-             -d '["", "blog", "pt/blog", "blog/post-1", ...]'
+   2. Após o deploy, o bootstrap dispara sozinho no primeiro startup.
 """)
-    else:
-        print("\n  [OK] Nada a corrigir - infraestrutura IndexNow já completa.")
+    elif not remaining:
+        print("\n  [OK] Nada a corrigir - infraestrutura IndexNow 100% completa e ativa.")
+        print("=" * 70 + "\n")
+        return changed
+
+    if remaining:
+        print("\n  PENDÊNCIAS que exigem edição de código (não são auto-corrigíveis):")
+        for r in remaining:
+            print(f"  {r}")
+
     print("=" * 70 + "\n")
     return changed
 
