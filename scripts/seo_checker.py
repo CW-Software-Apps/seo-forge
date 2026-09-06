@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SEO-FORGE: 360° SEO, Crawlability & GEO Diagnostic Engine
-Version: 1.2.0
+Version: 1.3.0
 Audits web applications (Blazor, Razor Pages, ASP.NET Core, HTML, Next.js, React)
 and generates detailed diagnostic reports with prioritized AI Action Plans for
 coding agents (OpenCode, Claude, Antigravity, Cursor).
@@ -9,6 +9,7 @@ coding agents (OpenCode, Claude, Antigravity, Cursor).
 Usage:
     python scripts/seo_checker.py [project_path]
     python scripts/seo_checker.py [project_path] --report [report_path.md]
+    python scripts/seo_checker.py [project_path] --fix [--host meudominio.com]
     python scripts/seo_checker.py --update
 """
 
@@ -17,10 +18,11 @@ import os
 import json
 import re
 import argparse
+import secrets
 from pathlib import Path
 from datetime import datetime
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 REPO_RAW_BASE = "https://raw.githubusercontent.com/CW-Software-Apps/seo-forge/main"
 
 # Fix Windows console encoding
@@ -108,6 +110,180 @@ def update_seo_forge(project_path: Path):
     sys.exit(0)
 
 
+def _find_web_project(project_path: Path) -> Path | None:
+    """Locate the web project directory (csproj) in a .NET solution."""
+    csproj_files = []
+    for f in project_path.glob("**/*.csproj"):
+        if not any(skip in f.parts for skip in SKIP_DIRS):
+            csproj_files.append(f)
+    if not csproj_files:
+        return None
+    web = [c for c in csproj_files if "Web" in c.name or "Site" in c.name]
+    return (web[0] if web else csproj_files[0]).parent
+
+
+def _get_template(name: str, script_dir: Path) -> str | None:
+    """Read a blazor template from the local seo-forge install, or fetch from GitHub."""
+    local = script_dir.parent / "templates" / "blazor" / name
+    if local.exists():
+        return local.read_text(encoding="utf-8")
+    try:
+        import urllib.request
+        with urllib.request.urlopen(f"{REPO_RAW_BASE}/templates/blazor/{name}") as resp:
+            return resp.read().decode("utf-8")
+    except Exception as e:
+        print(f"  [!] Não foi possível obter o template {name}: {e}")
+        return None
+
+
+INDEXNOW_ENDPOINT_SNIPPET = """
+// SEO-FORGE: IndexNow verification endpoint /{key}.txt + Bootstrap API
+var indexNowKey = builder.Configuration["IndexNow:Key"];
+if (!string.IsNullOrEmpty(indexNowKey))
+{
+    app.MapGet($"/{indexNowKey}.txt", () => Results.Text(indexNowKey, "text/plain"));
+
+    // One-time bulk submission of existing URLs. Protect with the project's
+    // AdminPassword sent in the "x-admin-key" header.
+    app.MapPost("/api/seo/indexnow/bootstrap", async (IIndexNowBootstrapService bootstrap, IConfiguration cfg, HttpRequest request, List<string> paths) =>
+    {
+        var adminKey = cfg["AdminPassword"] ?? Environment.GetEnvironmentVariable("AdminPassword");
+        if (string.IsNullOrEmpty(adminKey) || request.Headers["x-admin-key"].FirstOrDefault() != adminKey)
+            return Results.Unauthorized();
+
+        var count = await bootstrap.SubmitPathsAsync(paths);
+        return Results.Ok(new { submitted = count });
+    });
+}
+""".strip()
+
+
+def fix_indexnow_infrastructure(project_path: Path, host: str | None) -> bool:
+    """Auto-fix the IndexNow infrastructure (templates, config, DI, endpoints).
+
+    Returns True if any change was applied. The content-dispatch hook
+    (NotifyUrlChangedAsync inside the project's save/publish flow) is
+    project-specific and must be wired manually or by an AI agent.
+    """
+    print("\n" + "=" * 70)
+    print("  🛠️  SEO-FORGE - Auto-Fix: IndexNow Infrastructure")
+    print("=" * 70)
+
+    script_dir = Path(__file__).resolve().parent
+    web_dir = _find_web_project(project_path)
+    changed = False
+
+    if web_dir is None:
+        print("  [!] Nenhum projeto .NET (csproj) encontrado - auto-fix disponível apenas para Blazor/.NET.")
+        return False
+
+    print(f"  Projeto Web detectado: {web_dir.name}\n")
+
+    # 1. Copy service templates
+    services_dir = web_dir / "Services"
+    services_dir.mkdir(exist_ok=True)
+    for tpl_name in ["IIndexNowService.cs", "IndexNowService.cs", "IIndexNowBootstrapService.cs"]:
+        dest = services_dir / tpl_name
+        if dest.exists():
+            print(f"  [SKIP] Services/{tpl_name} já existe")
+            continue
+        content = _get_template(tpl_name, script_dir)
+        if content:
+            dest.write_text(content, encoding="utf-8")
+            print(f"  [OK] Criado: Services/{tpl_name}")
+            changed = True
+
+    # 2. appsettings.json - IndexNow section
+    appsettings_path = web_dir / "appsettings.json"
+    if appsettings_path.exists():
+        try:
+            data = json.loads(appsettings_path.read_text(encoding="utf-8"))
+            if "IndexNow" not in data or not data["IndexNow"].get("Key"):
+                key = data.get("IndexNow", {}).get("Key") or secrets.token_hex(16)
+                if not host:
+                    try:
+                        host = input("  Host de produção do site (ex: meudominio.com) [localhost]: ").strip()
+                    except EOFError:
+                        host = ""
+                    host = host or "localhost"
+                data["IndexNow"] = {"Host": host, "Key": key}
+                appsettings_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                print(f"  [OK] appsettings.json: seção IndexNow adicionada (Host: {host}, Key: {key[:6]}...)")
+                print(f"       >>> Registre esta chave no Bing Webmaster / indexnow.org: {key}")
+                changed = True
+            else:
+                print("  [SKIP] appsettings.json: IndexNow já configurado")
+        except Exception as e:
+            print(f"  [!] appsettings.json não pôde ser modificado: {e}")
+    else:
+        print("  [!] appsettings.json não encontrado")
+
+    # 3. Program.cs - using, DI and endpoints
+    program_candidates = [p for p in web_dir.glob("Program.cs")] or [p for p in web_dir.glob("**/Program.cs") if not any(s in p.parts for s in SKIP_DIRS)]
+    program_path = program_candidates[0] if program_candidates else None
+    if program_path and program_path.exists():
+        content = program_path.read_text(encoding="utf-8")
+
+        if "using CWSoftware.Web.Services;" not in content and "namespace CWSoftware.Web" not in content:
+            content = "using CWSoftware.Web.Services;\n" + content
+            print("  [OK] Program.cs: using CWSoftware.Web.Services adicionado")
+            changed = True
+
+        di_lines = [
+            "builder.Services.AddHttpClient<IIndexNowService, IndexNowService>();",
+            "builder.Services.AddSingleton<IIndexNowBootstrapService, IndexNowBootstrapService>();"
+        ]
+        missing_di = [l for l in di_lines if l not in content]
+        if missing_di and "builder.Services" in content:
+            # Insert right after the first builder.Services line found
+            insert_at = content.index("builder.Services.")
+            line_end = content.index("\n", insert_at)
+            content = content[:line_end] + "\n" + "\n".join(missing_di) + content[line_end:]
+            print(f"  [OK] Program.cs: {len(missing_di)} registro(s) de DI adicionado(s)")
+            changed = True
+        elif missing_di and "WebApplication.CreateBuilder" in content:
+            # Minimal template with no services yet: insert after CreateBuilder line
+            insert_at = content.index("WebApplication.CreateBuilder")
+            line_end = content.index("\n", insert_at)
+            content = content[:line_end] + "\n" + "\n".join(missing_di) + content[line_end:]
+            print(f"  [OK] Program.cs: {len(missing_di)} registro(s) de DI adicionado(s)")
+            changed = True
+        elif not missing_di:
+            print("  [SKIP] Program.cs: DI do IndexNow já registrada")
+        else:
+            print("  [!] Program.cs: padrão 'builder.Services' não encontrado - registre a DI manualmente")
+
+        if "app.Run();" in content and "IndexNow verification endpoint" not in content:
+            content = content.replace("app.Run();", INDEXNOW_ENDPOINT_SNIPPET + "\n\napp.Run();", 1)
+            print("  [OK] Program.cs: endpoint /{key}.txt + API de bootstrap adicionados")
+            changed = True
+        elif "IndexNow verification endpoint" in content or "/{indexNowKey}.txt" in content:
+            print("  [SKIP] Program.cs: endpoint IndexNow já mapeado")
+
+        if changed or True:
+            program_path.write_text(content, encoding="utf-8")
+    else:
+        print("  [!] Program.cs não encontrado - DI/endpoint devem ser configurados manualmente")
+
+    if changed:
+        print("""
+  [OK] Infraestrutura IndexNow aplicada! Próximos passos:
+   1. dotnet build (validar compilação)
+   2. AUTO-NOTIFY (obrigatório): injete IIndexNowService no serviço que salva
+      conteúdo público e chame NotifyUrlsChangedAsync (ver templates/blazor/ProgramSnippets.cs
+      ou envie o seo_report.md para sua IA).
+   3. BOOTSTRAP one-time (após deploy): envie todas as URLs existentes:
+        curl -X POST https://SEU-SITE/api/seo/indexnow/bootstrap \\
+             -H "x-admin-key: SUA_ADMIN_PASSWORD" \\
+             -H "Content-Type: application/json" \\
+             -d '["", "blog", "pt/blog", "blog/post-1", ...]'
+""")
+    else:
+        print("\n  [OK] Nada a corrigir - infraestrutura IndexNow já completa.")
+    print("=" * 70 + "\n")
+    return changed
+
+
 def check_technical_infrastructure(project_path: Path) -> dict:
     """Audit Technical SEO: robots.txt, sitemap.xml, IndexNow, DI and Blazor SSR."""
     results = {
@@ -116,6 +292,8 @@ def check_technical_infrastructure(project_path: Path) -> dict:
         "indexnow_config": {"status": False, "key": None, "host": None, "detail": "IndexNow não configurado no appsettings.json", "action": "Adicionar seção IndexNow com Host e Key no appsettings.json"},
         "indexnow_endpoint": {"status": False, "detail": "Endpoint de validação /{key}.txt não mapeado", "action": "Mapear endpoint GET /{key}.txt retornando a chave em texto puro"},
         "indexnow_di": {"status": False, "detail": "IIndexNowService não registrado na injeção de dependência", "action": "Registrar builder.Services.AddHttpClient<IIndexNowService, IndexNowService>() no Program.cs / Startup.cs"},
+        "indexnow_dispatch": {"status": False, "detail": "IIndexNowService registrado mas NotifyUrlChangedAsync nunca é invocado no código (integração morta: nenhum ping é enviado)", "action": "Injetar IIndexNowService no serviço de conteúdo (ex: SavePostAsync) e chamar NotifyUrlChangedAsync ao publicar/editar entidades (ver templates/blazor/ProgramSnippets.cs)"},
+        "indexnow_bootstrap": {"status": False, "detail": "Submissão one-time (bootstrap) das URLs existentes não encontrada: conteúdo antigo nunca é reportado ao Bing", "action": "Adicionar IndexNowBootstrapService + botão 'Submit All URLs' no painel admin (ver templates/blazor/ProgramSnippets.cs)"},
         "blazor_headoutlet": {"status": False, "detail": "Nenhum <HeadOutlet /> encontrado em App.razor ou _Host.cshtml", "action": "Adicionar <HeadOutlet /> ou <component type=\"typeof(HeadOutlet)\" /> para suportar SSR de metadados"},
         "schema_jsonld": {"status": False, "count": 0, "detail": "Nenhum schema JSON-LD encontrado", "action": "Adicionar Schema.org (Organization / SoftwareApplication) com componente <JsonLd> ou script"}
     }
@@ -188,6 +366,37 @@ def check_technical_infrastructure(project_path: Path) -> dict:
         results["indexnow_di"] = {"status": True, "detail": "Registrado na Injeção de Dependência", "action": None}
     elif "IndexNowService" in code_content_all and ("AddHttpClient" in code_content_all or "AddScoped" in code_content_all):
         results["indexnow_di"] = {"status": True, "detail": "Serviço registrado na DI", "action": None}
+
+    # 5b. IndexNow Dispatch (is NotifyUrlChangedAsync actually invoked anywhere?)
+    # 5c. IndexNow Bootstrap (one-time bulk submission of existing URLs)
+    cs_files = [f for f in project_path.glob("**/*.cs") if not any(skip in f.parts for skip in SKIP_DIRS)]
+    cs_content_all = ""
+    for f in cs_files:
+        try:
+            cs_content_all += f.read_text(encoding='utf-8', errors='ignore') + "\n"
+        except Exception:
+            pass
+
+    indexnow_integrated = results["indexnow_config"]["status"] or results["indexnow_di"]["status"]
+    if not indexnow_integrated:
+        results["indexnow_dispatch"] = {"status": True, "detail": "IndexNow não configurado - verificação não aplicável", "action": None}
+        results["indexnow_bootstrap"] = {"status": True, "detail": "IndexNow não configurado - verificação não aplicável", "action": None}
+    else:
+        dispatch_found = False
+        for f in cs_files:
+            if "indexnow" in f.name.lower():
+                continue
+            try:
+                if re.search(r'\.NotifyUrls?ChangedAsync\s*\(', f.read_text(encoding='utf-8', errors='ignore')):
+                    dispatch_found = True
+                    break
+            except Exception:
+                pass
+        if dispatch_found:
+            results["indexnow_dispatch"] = {"status": True, "detail": "NotifyUrlChangedAsync invocado no fluxo de conteúdo (auto-notify ativo)", "action": None}
+
+        if "IndexNowBootstrap" in cs_content_all:
+            results["indexnow_bootstrap"] = {"status": True, "detail": "Bootstrap one-time (submissão em lote das URLs existentes) encontrado", "action": None}
 
     # 6. Blazor HeadOutlet (App.razor or _Host.cshtml)
     host_or_app_files = [f for f in (list(project_path.glob("**/App.razor")) + list(project_path.glob("**/*Host*.cshtml"))) if not any(skip in f.parts for skip in SKIP_DIRS)]
@@ -395,6 +604,8 @@ def generate_markdown_report(report_path: Path, project_path: Path, tech_audit: 
         ("indexnow_config", "Configuração IndexNow (appsettings.json)"),
         ("indexnow_endpoint", "Endpoint de Verificação (/{key}.txt)"),
         ("indexnow_di", "Serviço IndexNow em Injeção de Dependência"),
+        ("indexnow_dispatch", "Disparo IndexNow (NotifyUrlChangedAsync no fluxo de conteúdo)"),
+        ("indexnow_bootstrap", "IndexNow Bootstrap (submissão one-time das URLs existentes)"),
         ("blazor_headoutlet", "Blazor SSR (<HeadOutlet /> no App.razor / _Host.cshtml)"),
         ("schema_jsonld", "Dados Estruturados Schema.org (JSON-LD)")
     ]:
@@ -449,6 +660,8 @@ def main():
     parser.add_argument("--report", nargs="?", const="seo_report.md", default="seo_report.md", help="Path to write Markdown report (default: seo_report.md)")
     parser.add_argument("--version", action="version", version=f"SEO-FORGE v{VERSION}")
     parser.add_argument("--update", action="store_true", help="Atualiza o SEO-FORGE (skills globais, regras de IA e checker) para a versão mais recente do GitHub")
+    parser.add_argument("--fix", action="store_true", help="Aplica automaticamente a infraestrutura IndexNow ausente (templates, appsettings, DI, endpoints) em projetos .NET")
+    parser.add_argument("--host", help="Host de produção (ex: meudominio.com) usado pelo --fix ao gerar a chave IndexNow")
     args = parser.parse_args()
 
     project_path = Path(args.project_path).resolve()
@@ -456,6 +669,9 @@ def main():
     if args.update:
         update_seo_forge(project_path)
         return
+
+    if args.fix:
+        fix_indexnow_infrastructure(project_path, args.host)
 
     print(f"\n{'='*70}")
     print(f"  🚀 SEO-FORGE v{VERSION} - 360° Diagnostic Engine & AI Action Planner")
@@ -513,6 +729,8 @@ def main():
         ("IndexNow (appsettings.json)", "indexnow_config"),
         ("IndexNow Endpoint (/{key}.txt)", "indexnow_endpoint"),
         ("IndexNow C# DI Service", "indexnow_di"),
+        ("IndexNow Dispatch (auto-notify)", "indexnow_dispatch"),
+        ("IndexNow Bootstrap (bulk submit)", "indexnow_bootstrap"),
         ("Blazor SSR (<HeadOutlet />)", "blazor_headoutlet"),
         ("Dados Estruturados (JSON-LD)", "schema_jsonld")
     ]:
@@ -541,6 +759,22 @@ def main():
     print(f"\n📄 Relatório de diagnóstico & Plano de Ação salvo em: {report_file.name}")
     print("💡 Você pode enviar o relatório gerado diretamente para a sua IA resolver as pendências com inteligência contextual.")
     print("🔄 Para atualizar o SEO-FORGE: python scripts/seo_checker.py --update")
+
+    # Interactive offer: auto-fix IndexNow infrastructure when issues were found
+    indexnow_pending = any(
+        not tech_audit[k]["status"] for k in ("indexnow_config", "indexnow_endpoint", "indexnow_di", "indexnow_dispatch", "indexnow_bootstrap")
+    ) and any(
+        tech_audit[k].get("detail") != "IndexNow não configurado - verificação não aplicável"
+        for k in ("indexnow_dispatch", "indexnow_bootstrap")
+    )
+    if indexnow_pending and sys.stdin.isatty():
+        try:
+            answer = input("\n🛠️  Infraestrutura IndexNow pendente. Aplicar auto-fix agora? [s/N]: ").strip().lower()
+        except EOFError:
+            answer = ""
+        if answer in ("s", "sim", "y", "yes"):
+            fix_indexnow_infrastructure(project_path, args.host)
+
     print("=" * 70 + "\n")
 
     sys.exit(0 if total_score >= 85 else 1)

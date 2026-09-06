@@ -116,7 +116,8 @@ if ($Project) {
             @{ Name = "SeoHeader.razor"; Dest = (Join-Path $sharedCompDir "SeoHeader.razor"); Remote = "$RepoRawBase/templates/blazor/SeoHeader.razor"; Local = "templates/blazor/SeoHeader.razor" },
             @{ Name = "JsonLd.razor"; Dest = (Join-Path $sharedCompDir "JsonLd.razor"); Remote = "$RepoRawBase/templates/blazor/JsonLd.razor"; Local = "templates/blazor/JsonLd.razor" },
             @{ Name = "IIndexNowService.cs"; Dest = (Join-Path $servicesDir "IIndexNowService.cs"); Remote = "$RepoRawBase/templates/blazor/IIndexNowService.cs"; Local = "templates/blazor/IIndexNowService.cs" },
-            @{ Name = "IndexNowService.cs"; Dest = (Join-Path $servicesDir "IndexNowService.cs"); Remote = "$RepoRawBase/templates/blazor/IndexNowService.cs"; Local = "templates/blazor/IndexNowService.cs" }
+            @{ Name = "IndexNowService.cs"; Dest = (Join-Path $servicesDir "IndexNowService.cs"); Remote = "$RepoRawBase/templates/blazor/IndexNowService.cs"; Local = "templates/blazor/IndexNowService.cs" },
+            @{ Name = "IIndexNowBootstrapService.cs"; Dest = (Join-Path $servicesDir "IIndexNowBootstrapService.cs"); Remote = "$RepoRawBase/templates/blazor/IIndexNowBootstrapService.cs"; Local = "templates/blazor/IIndexNowBootstrapService.cs" }
         )
 
         foreach ($t in $templates) {

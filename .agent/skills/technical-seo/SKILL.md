@@ -89,8 +89,13 @@ public class IndexNowService : IIndexNowService
 }
 ```
 
-#### Automatic Persistence Hook
+#### Automatic Persistence Hook (MANDATORY)
 Call `IIndexNowService.NotifyUrlChangedAsync(pageUrl)` inside your command/service handlers whenever a public entity (page, blog post, product, landing page) is created, updated, or removed.
+
+> ⚠️ **A integração é considerada MORTA se o serviço está registrado na DI mas `NotifyUrlChangedAsync` nunca é invocado.** Nenhum ping é enviado e o Bing Webmaster continuará exibindo "não integrado". O `seo_checker.py` valida isso (checks `indexnow_dispatch` e `indexnow_bootstrap`).
+
+#### One-Time Bootstrap (existing content)
+IndexNow é orientado a *mudança*: URLs antigas só são conhecidas se forem enviadas. Na primeira integração (ou após importações em massa via MCP/scripts), submeta todas as URLs públicas existentes em **um único lote** (até 10.000 URLs por request) usando `IIndexNowBootstrapService.SubmitPathsAsync(paths)` (template `templates/blazor/IIndexNowBootstrapService.cs`), acionado por um botão admin-only com registro de timestamp (`GetLastBootstrapUtc()`) para evitar reenvio acidental (a spec proíbe spam de URLs não alteradas — risco de bloqueio da chave).
 
 ---
 
@@ -225,3 +230,4 @@ Ensure the following headers are configured in production middleware:
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - Canonical redirects: 301 redirect all HTTP to HTTPS and non-canonical domains (e.g. `http://cwsoftware.com.br` -> `https://cwsoftware.com.br`).
+
