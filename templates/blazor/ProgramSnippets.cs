@@ -101,6 +101,16 @@ app.MapPost("/api/seo/indexnow/bootstrap", async (IIndexNowBootstrapService boot
     return Results.Ok(new { submitted = count });
 });
 
+// Validation endpoint - validates the WHOLE pipeline (config, key file,
+// sitemap, stamp, optional live API ping via ?ping=true):
+app.MapGet("/api/seo/indexnow/validate", async (IIndexNowBootstrapService bootstrap, IConfiguration cfg, HttpRequest request, bool ping = false) =>
+{
+    var adminKey = cfg["AdminPassword"] ?? Environment.GetEnvironmentVariable("AdminPassword");
+    if (string.IsNullOrEmpty(adminKey) || request.Headers["x-admin-key"].FirstOrDefault() != adminKey)
+        return Results.Unauthorized();
+    return Results.Ok(await bootstrap.ValidateAsync(pingApi: ping));
+});
+
 // GetLastBootstrapUtc() can be shown in the admin UI to display the last
 // submission date and warn before an accidental re-submission.
 */

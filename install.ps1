@@ -122,6 +122,26 @@ if ($Project) {
 
         foreach ($t in $templates) {
             $localTPath = if (![string]::IsNullOrEmpty($PSScriptRoot)) { Join-Path $PSScriptRoot $t.Local } else { $null }
+
+            # SAFETY: never overwrite an existing implementation that differs
+            # from the template (user-customized code) - skip and warn instead.
+            if (Test-Path $t.Dest) {
+                $existingContent = Get-Content $t.Dest -Raw -ErrorAction SilentlyContinue
+                $newContent = if ($localTPath -and (Test-Path $localTPath)) { Get-Content $localTPath -Raw } else { $null }
+                if ($null -ne $newContent) {
+                    if ($existingContent -eq $newContent) {
+                        Write-Host "  -> Skipped (identical): $($t.Name)" -ForegroundColor DarkGray
+                        continue
+                    } else {
+                        Write-Host "  -> SKIPPED: $($t.Name) already exists with different content - NOT overwritten. Ask your AI to review the conflict." -ForegroundColor Yellow
+                        continue
+                    }
+                } else {
+                    Write-Host "  -> SKIPPED: $($t.Name) already exists - not overwritten. Ask your AI to review the conflict." -ForegroundColor Yellow
+                    continue
+                }
+            }
+
             if ($localTPath -and (Test-Path $localTPath)) {
                 Copy-Item $localTPath $t.Dest -Force
             } else {

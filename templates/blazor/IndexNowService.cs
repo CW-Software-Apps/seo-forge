@@ -70,12 +70,18 @@ public class IndexNowService : IIndexNowService
             else
             {
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogWarning("IndexNow API returned status {StatusCode}: {Content}", response.StatusCode, content);
+                _logger.LogWarning("IndexNow API returned status {StatusCode}: {Content}", (int)response.StatusCode, content);
+                throw new IndexNowSubmissionException((int)response.StatusCode, content);
             }
+        }
+        catch (IndexNowSubmissionException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to submit URLs to IndexNow API.");
+            throw;
         }
     }
 }

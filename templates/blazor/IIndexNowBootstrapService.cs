@@ -27,6 +27,24 @@ public interface IIndexNowBootstrapService
 {
     DateTime? GetLastBootstrapUtc();
     Task<int> SubmitPathsAsync(IEnumerable<string> relativePaths);
+    Task<IndexNowValidationResult> ValidateAsync(bool pingApi = false);
+}
+
+/// <summary>Full IndexNow pipeline status, returned by ValidateAsync.</summary>
+public record IndexNowValidationResult
+{
+    public string? Host { get; init; }
+    public string? KeyPreview { get; init; }
+    public bool ConfigOk { get; init; }
+    public bool KeyFileOk { get; init; }
+    public string? KeyFileDetail { get; init; }
+    public bool SitemapOk { get; init; }
+    public string? SitemapDetail { get; init; }
+    public DateTime? LastBootstrapUtc { get; init; }
+    public bool? ApiPingOk { get; init; }
+    public string? ApiPingDetail { get; init; }
+    public bool PingRequested { get; init; }
+    public bool AllOk => ConfigOk && KeyFileOk && SitemapOk && (ApiPingOk != false);
 }
 
 public class IndexNowBootstrapService : IIndexNowBootstrapService, IHostedService
@@ -96,6 +114,83 @@ public class IndexNowBootstrapService : IIndexNowBootstrapService, IHostedServic
 
         _logger.LogInformation("IndexNow bootstrap submitted {Count} URLs for host {Host}.", urls.Count, host);
         return urls.Count;
+    }
+
+    /// <summary>
+    /// Validates the whole IndexNow pipeline: config, key file served by the
+    /// site, sitemap reachability, bootstrap stamp and (optionally) a live
+    /// API ping. Exposed via GET /api/seo/indexnow/validate (see ProgramSnippets.cs).
+    /// </summary>
+    public async Task<IndexNowValidationResult> ValidateAsync(bool pingApi = false)
+    {
+        var host = _config["IndexNow:Host"];
+        var key = _config["IndexNow:Key"];
+        var result = new IndexNowValidationResult
+        {
+            Host = host,
+            KeyPreview = string.IsNullOrEmpty(key) ? null : $"{key[..6]}...",
+            LastBootstrapUtc = GetLastBootstrapUtc(),
+            PingRequested = pingApi,
+            ConfigOk = !string.IsNullOrWhiteSpace(host) && !string.IsNullOrWhiteSpace(key)
+        };
+
+        if (!result.ConfigOk) return result;
+
+        var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(15);
+
+        // Key file must be publicly served at /{key}.txt with the exact key as content
+        try
+        {
+            var content = (await client.GetStringAsync($"https://{host}/{key}.txt")).Trim();
+            result = result with
+            {
+                KeyFileOk = content == key,
+                KeyFileDetail = content == key
+                    ? $"/{key[..6]}...txt servido corretamente"
+                    : $"Conteúdo divergente: '{content[..Math.Min(20, content.Length)]}'"
+            };
+        }
+        catch (Exception ex)
+        {
+            result = result with { KeyFileOk = false, KeyFileDetail = $"Inacessível: {ex.Message}" };
+        }
+
+        // Sitemap must be reachable (used by auto-bootstrap and search engines)
+        try
+        {
+            var xml = await client.GetStringAsync($"https://{host}/sitemap.xml");
+            var locCount = Regex.Matches(xml, "<loc>(.*?)</loc>").Count;
+            result = result with
+            {
+                SitemapOk = locCount > 0,
+                SitemapDetail = $"{locCount} URLs no sitemap.xml"
+            };
+        }
+        catch (Exception ex)
+        {
+            result = result with { SitemapOk = false, SitemapDetail = $"Inacessível: {ex.Message}" };
+        }
+
+        // Optional live ping: submits the site root to the IndexNow API
+        if (pingApi)
+        {
+            try
+            {
+                await _indexNowService.NotifyUrlChangedAsync("");
+                result = result with { ApiPingOk = true, ApiPingDetail = "Submissão de teste aceita pela API (2xx)" };
+            }
+            catch (IndexNowSubmissionException ex)
+            {
+                result = result with { ApiPingOk = false, ApiPingDetail = ex.Message };
+            }
+            catch (Exception ex)
+            {
+                result = result with { ApiPingOk = false, ApiPingDetail = $"Falha de rede: {ex.Message}" };
+            }
+        }
+
+        return result;
     }
 
     private void MarkBootstrap()
